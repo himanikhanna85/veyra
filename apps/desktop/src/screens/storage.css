@@ -1,0 +1,20 @@
+.storage-screen { padding: 36px 40px; }
+.storage-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.storage-heading h1 { margin: 6px 0 8px; font-size: 30px; }
+.storage-heading p { max-width: 650px; margin: 0; color: var(--color-text-secondary); }
+.storage-heading__actions, .storage-project > div:last-child { display: flex; gap: 8px; }
+.storage-heading__actions .button, .storage-project .button { display: inline-flex; align-items: center; gap: 7px; }
+.storage-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+.storage-summary > div, .storage-projects { border: 1px solid var(--color-border); border-radius: 18px; background: #fff; }
+.storage-summary > div { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 6px 10px; padding: 20px; }
+.storage-summary strong { grid-column: 1 / -1; font-size: 24px; }
+.storage-summary small { color: var(--color-text-secondary); }
+.storage-projects { margin-top: 20px; padding: 20px; }
+.storage-projects__head, .storage-project { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.storage-projects__head h2 { margin: 0; font-size: 16px; }
+.storage-projects__head span { color: var(--color-text-secondary); }
+.storage-project { margin-top: 16px; padding: 14px 0; border-top: 1px solid var(--color-border); }
+.storage-project > div:first-child { display: grid; gap: 4px; }
+.storage-project > div:first-child span, .storage-empty, .storage-message, .storage-notice { color: var(--color-text-secondary); font-size: 13px; }
+.storage-notice { margin-top: 24px; padding: 16px; border: 1px solid var(--color-border); border-radius: 12px; background: #fff; }
+.storage-message { min-height: 20px; }

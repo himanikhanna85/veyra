@@ -56,6 +56,16 @@ operation IDs for recovery, then permits Electron to quit. An unclean previous
 session is surfaced as pending recovery on the next launch. E05/E13 workers
 must use this registry rather than adding independent quit hooks.
 
+## Project persistence
+
+`electron/project-store.ts` is the E02 persistence module and the only seam for
+project-domain storage. It owns versioned SQLite migrations, immutable
+completed-run snapshots, the external evidence tree, storage accounting,
+cleanup, and the checksummed `.veyra-project.json` backup format. Renderer code
+must use the named preload methods; it must never import SQLite, receive local
+filesystem paths, or access evidence directly. Restore must validate before
+commit and preserve the original database when opening or migration fails.
+
 ## Build outputs and platforms
 
 - `dist/client/` contains bundled renderer assets.

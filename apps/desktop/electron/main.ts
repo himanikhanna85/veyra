@@ -1,18 +1,20 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   net,
   protocol,
   session,
 } from "electron";
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { FileLifecycleJournal } from "./file-lifecycle-journal";
 import { IPC_CHANNELS } from "./ipc-contract";
 import { registerDesktopIpc } from "./ipc-main";
 import { DesktopLifecycle } from "./lifecycle";
+import { ProjectStore } from "./project-store";
 import {
   isTrustedRendererSender,
   selectRendererUrl,
@@ -52,6 +54,7 @@ let shutdownRequested = false;
 let shutdownComplete = false;
 let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
+let projectStore: ProjectStore | undefined;
 
 const windowManager = new DesktopWindowManager({
   appIconPath,
@@ -103,9 +106,13 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
     smoke.lifecyclePhase === "ready" &&
     JSON.stringify(smoke.apiKeys) ===
       JSON.stringify([
+        "cleanProjectEvidence",
+        "exportProjectBackup",
         "getAppInfo",
         "getLifecycleSnapshot",
+        "getStorageOverview",
         "onLifecycleChanged",
+        "restoreProjectBackup",
       ]);
   if (!valid) throw new Error(`Desktop smoke check failed: ${JSON.stringify(smoke)}`);
   console.log(`VEYRA_SMOKE_READY ${JSON.stringify(smoke)}`);
@@ -135,6 +142,7 @@ async function startApplication(): Promise<void> {
     now: () => new Date(),
   });
   await lifecycle.start();
+  projectStore = new ProjectStore(join(app.getPath("userData"), "projects"));
 
   disposeIpc = registerDesktopIpc({
     getAppInfo: () => ({
@@ -150,6 +158,44 @@ async function startApplication(): Promise<void> {
       cleanupFailures: [],
       phase: "starting",
       recoveredInterruptedOperationIds: [],
+    },
+    getStorageOverview: async () => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const totals = await projectStore.getStorageUsage();
+      const projects = await Promise.all(projectStore.listProjects().map(async (project) => {
+        const usage = await projectStore!.getStorageUsage(project.id);
+        return { id: project.id, name: project.name, evidenceBytes: usage.evidenceBytes, evidenceFiles: usage.evidenceFiles };
+      }));
+      return { ...totals, projects };
+    },
+    cleanProjectEvidence: (projectId, olderThan) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      return projectStore.cleanEvidence(projectId, olderThan);
+    },
+    exportProjectBackup: async (projectId) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const project = projectStore.getProject(projectId);
+      if (!project) throw new Error("Project not found");
+      const result = await dialog.showSaveDialog({
+        defaultPath: `${project.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}.veyra-project.json`,
+        filters: [{ name: "Veyra project", extensions: ["json"] }],
+        title: "Export Veyra project",
+      });
+      if (result.canceled || !result.filePath) return { canceled: true } as const;
+      await projectStore.exportProject(projectId, result.filePath);
+      return { canceled: false, fileName: basename(result.filePath), projectId } as const;
+    },
+    restoreProjectBackup: async () => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const result = await dialog.showOpenDialog({
+        filters: [{ name: "Veyra project", extensions: ["json"] }],
+        properties: ["openFile"],
+        title: "Restore Veyra project",
+      });
+      const filePath = result.filePaths[0];
+      if (result.canceled || !filePath) return { canceled: true } as const;
+      const project = await projectStore.restoreProject(filePath);
+      return { canceled: false, fileName: basename(filePath), projectId: project.id } as const;
     },
     ipcMain,
     isTrustedSender: (candidateUrl) =>
@@ -203,6 +249,7 @@ if (!hasSingleInstanceLock) {
   app.on("will-quit", () => {
     disposeLifecycleSubscription();
     disposeIpc();
+    projectStore?.close();
     if (rendererProtocolInstalled) protocol.unhandle(APP_SCHEME);
   });
   applicationReady = app.whenReady().then(startApplication);

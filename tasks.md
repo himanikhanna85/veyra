@@ -15,16 +15,6 @@ No task is currently approved and queued.
 
 ### M01 — Desktop Foundation & Persistence
 
-#### E02 — Local Persistence & Project Lifecycle
-
-- [ ] E02.T01 — Persist structured project data locally (`P0`; `FR02.01`).
-- [ ] E02.T02 — Store evidence separately from structured records (`P0`; `FR02.02`).
-- [ ] E02.T03 — Implement versioned, recoverable database migrations (`P0`; `FR02.03`).
-- [ ] E02.T04 — Preserve historical run integrity across edits (`P0`; `FR02.04`).
-- [ ] E02.T05 — Export a complete local project backup (`P1`; `FR02.05`).
-- [ ] E02.T06 — Restore/import a validated project backup (`P1`; `FR02.06`).
-- [ ] E02.T07 — Show and manage local storage usage (`P1`; `FR02.07`).
-
 ### M02 — Projects, Environments & Secrets
 
 #### E03 — Projects & Environments
@@ -449,6 +439,13 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] E02.T01 — Persisted structured project data locally in versioned SQLite storage (`P0`; `FR02.01`).
+- [x] E02.T02 — Stored screenshots/traces/reports in a separate evidence filesystem tree (`P0`; `FR02.02`).
+- [x] E02.T03 — Implemented transactional versioned migrations with preserved-database failure handling (`P0`; `FR02.03`).
+- [x] E02.T04 — Preserved completed-run meaning with immutable definition snapshots (`P0`; `FR02.04`).
+- [x] E02.T05 — Exported complete checksummed project backups in the documented Veyra format (`P1`; `FR02.05`).
+- [x] E02.T06 — Restored validated backups transactionally with partial-evidence cleanup (`P1`; `FR02.06`).
+- [x] E02.T07 — Added local storage inspection, native backup/restore and two-step old-evidence cleanup in Data (`P1`; `FR02.07`).
 - [x] D06 — Replaced the generic sidebar lockup with the approved transparent Veyra mark and exact rectlogo-derived wordmark artwork (`DEC-23`, `SCR-OVERVIEW`; `design_specification.md`; `design-qa.md`).
 - [x] D05 — Applied and package-verified the approved Veyra mark for the development window, macOS bundle/DMG and Windows executable/installer (`DEC-22`, `FR22.01`; `design_specification.md`).
 - [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).

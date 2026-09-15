@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { AppShell } from "./design-system/AppShell.jsx";
 import { OverviewScreen } from "./screens/OverviewScreen.jsx";
+import { StorageScreen } from "./screens/StorageScreen.jsx";
 
 export function App() {
   const [activeSection, setActiveSection] = useState("overview");
@@ -14,6 +15,8 @@ export function App() {
     >
       {activeSection === "overview" ? (
         <OverviewScreen onNavigate={setActiveSection} />
+      ) : activeSection === "data" ? (
+        <StorageScreen />
       ) : (
         <section aria-labelledby="foundation-screen-title" className="foundation-placeholder">
           <span>Foundation preview</span>

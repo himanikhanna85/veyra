@@ -443,6 +443,23 @@ Restore a valid Veyra project export.
 
 Inspect/clean old evidence without deleting core definitions.
 
+### E02 implementation baseline --- 15 September 2026
+
+The shipped `ProjectStore` is the single persistence interface over a
+versioned local SQLite database and a separate filesystem evidence tree. It
+stores project definitions and immutable completed-run snapshots, performs
+transactional schema migration, and preserves an unreadable/future database
+rather than replacing it. Storage inspection and two-step age-based evidence
+cleanup are available from the Data screen through validated, allow-listed
+main/preload calls; cleanup never deletes definitions or run history.
+
+Project export and restore use the documented checksummed
+`.veyra-project.json` format in `docs/Veyra_Project_Backup_Format.md`. Native
+main-process file pickers keep paths out of the renderer. Restore validates the
+format version, checksum, identifiers, evidence paths/extensions and byte sizes,
+then commits structured rows transactionally and removes partial evidence on
+failure.
+
 ## E03 --- Projects & Environments
 
 **Module:** M02\
@@ -2161,7 +2178,16 @@ trade-offs.
 
 **OD-09 Pricing:** not frozen.
 
-**OD-10 Project export format:** requires implementation design.
+**OD-10 Project export format:** resolved by E02 on 2026-09-15 as the
+versioned, checksummed `.veyra-project.json` contract documented in
+`docs/Veyra_Project_Backup_Format.md`. JSON was selected over a proprietary
+binary container because it is inspectable, versionable and recoverable with
+ordinary tools; evidence is embedded as base64 so export remains one portable
+file while restore still recreates the required separate evidence tree. A
+canonical-payload SHA-256 checksum detects truncation or edits before any
+records are committed. A raw SQLite copy was rejected because it couples
+exports to internal migrations, and an unchecksummed directory bundle was
+rejected because partial copies are difficult to distinguish from valid ones.
 
 These operational decisions do not reopen the completed product grill
 unless they materially alter product behaviour.

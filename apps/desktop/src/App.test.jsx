@@ -90,6 +90,19 @@ describe("Veyra desktop foundation", () => {
 
     await user.click(screen.getByRole("button", { name: "Overview" }));
     await user.click(screen.getByRole("button", { name: "Add dataset" }));
-    expect(screen.getByRole("heading", { level: 1, name: "Data" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Data & storage" })).toBeVisible();
+  });
+
+  it("shows local structured and evidence usage in Data", async () => {
+    const user = userEvent.setup();
+    window.veyraDesktop = {
+      getStorageOverview: async () => ({ databaseBytes: 4096, evidenceBytes: 2048, evidenceFiles: 2, totalBytes: 6144, projects: [] }),
+    };
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Data" }));
+    expect(await screen.findByRole("heading", { name: "Data & storage" })).toBeVisible();
+    expect(await screen.findByText("4.0 KB")).toBeVisible();
+    expect(screen.getByText("2 files")).toBeVisible();
+    delete window.veyraDesktop;
   });
 });

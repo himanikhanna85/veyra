@@ -116,6 +116,27 @@ implementation tasks and may not introduce another visual language.
   the sidebar edge.
 - Disabled: `#4A5465`, no pointer affordance.
 - Keyboard focus: global blue focus ring; never rely on selected fill alone.
+
+### 3.3 Data & storage support screen
+
+The Data destination owns local storage inspection and project portability in
+addition to later dataset work. Its E02 empty/management state uses the global
+shell and standard components; it may not introduce a second visual language.
+
+- Page heading: uppercase `Local workspace` eyebrow, `Data & storage` title and
+  one sentence explaining that structured records and evidence are separate.
+- Header actions: blue `Restore project`, then secondary `Refresh`. Both are
+  disabled outside the desktop runtime with an explanatory neutral notice.
+- Summary: three equal white 18 px-radius cards for Structured data, Evidence
+  (including file count) and Total local usage.
+- Projects: one bordered white panel. Each row shows project name, evidence
+  bytes/file count, secondary Export and secondary Clean evidence controls.
+- Evidence cleanup is destructive and therefore requires a second deliberate
+  click labelled `Confirm clean`. Before confirmation, announce that only
+  evidence older than 30 days is removed and definitions/run history remain.
+- Restore/export use native file pickers. The renderer never displays or owns a
+  local filesystem path. Results and cleanup totals are announced in an
+  `aria-live="polite"` region.
 - Counts are 11.5 px tabular labels aligned to the trailing edge.
 
 ### 3.3 Global search and context controls
