@@ -102,6 +102,13 @@ npm audit
 
 ## Desktop packaging
 
+Regenerate the packaging icon from the approved lossless source:
+
+```bash
+cd /Users/anandarora/Veyra
+sips -z 1024 1024 docs/brand/veyra-app-icon-source.png --out apps/desktop/build/icon.png
+```
+
 Create an unpacked Apple Silicon macOS application for fast local checks:
 
 ```bash
@@ -139,6 +146,6 @@ VEYRA_EXECUTABLE="release/mac-arm64/Veyra.app/Contents/MacOS/Veyra" node scripts
 ```
 
 Artifacts are written to `/Users/anandarora/Veyra/apps/desktop/release/`.
-E01 artifacts are unsigned and use Electron's default icon; signing,
-notarization, branded icons and update channels are E22 work. Run each package
-on its target operating system before external distribution.
+E01 artifacts use the approved Veyra mark but remain unsigned; signing,
+notarization and update channels are E22 work. Run each package on its target
+operating system before external distribution.

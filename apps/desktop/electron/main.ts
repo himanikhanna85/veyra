@@ -26,6 +26,7 @@ import {
 const APP_SCHEME = "veyra";
 const rendererRoot = join(__dirname, "..", "client");
 const preloadPath = join(__dirname, "preload.cjs");
+const appIconPath = join(__dirname, "..", "..", "build", "icon.png");
 const rendererUrl = selectRendererUrl(process.env.VEYRA_RENDERER_URL);
 
 protocol.registerSchemesAsPrivileged([
@@ -53,6 +54,7 @@ let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
 
 const windowManager = new DesktopWindowManager({
+  appIconPath,
   createWindow: (options) =>
     new BrowserWindow(options) as unknown as DesktopWindowLike,
   preloadPath,
@@ -120,6 +122,9 @@ async function openWindow(): Promise<void> {
 async function startApplication(): Promise<void> {
   installRendererProtocol();
   denyRendererPermissions();
+  if (process.platform === "darwin" && !app.isPackaged) {
+    app.dock?.setIcon(appIconPath);
+  }
   if (process.platform === "win32") app.setAppUserModelId("com.veyra.desktop");
 
   lifecycle = new DesktopLifecycle({

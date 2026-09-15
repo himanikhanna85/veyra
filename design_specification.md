@@ -34,6 +34,17 @@ management are required by the PRD but are not separate approved mockups. They
 must reuse the shell, tokens and components below; their detailed layouts are
 implementation tasks and may not introduce another visual language.
 
+### Application identity asset
+
+- The approved desktop mark is `docs/brand/veyra-app-icon-source.png`: a
+  2000 × 2000 transparent RGBA source using navigation ink and action orange.
+- `apps/desktop/build/icon.png` is its deterministic 1024 × 1024 packaging
+  derivative and must retain transparency and the source safe area.
+- Use it for the macOS application/Dock icon, Windows executable/installer icon
+  and development desktop window. Platform-native masks and scaling are allowed.
+- Do not crop or redraw the mark, add a wordmark/background, or pre-round the
+  corners. Changes require a new approved source and a DEC update.
+
 ## 1. Product Design Principles
 
 1. **Business language first.** Primary UI says “Teach”, “Add to cart”,

@@ -3,6 +3,7 @@ import { isTrustedRendererSender } from "./renderer-origin";
 export interface DesktopWindowOptions {
   backgroundColor: string;
   height: number;
+  icon: string;
   minHeight: number;
   minWidth: number;
   show: boolean;
@@ -46,18 +47,26 @@ export interface DesktopWindowLike {
 export type WindowFactory = (options: DesktopWindowOptions) => DesktopWindowLike;
 
 interface DesktopWindowManagerOptions {
+  appIconPath: string;
   createWindow: WindowFactory;
   preloadPath: string;
   rendererUrl: string;
 }
 
 export class DesktopWindowManager {
+  readonly #appIconPath: string;
   readonly #createWindow: WindowFactory;
   readonly #preloadPath: string;
   readonly #rendererUrl: string;
   #window: DesktopWindowLike | null = null;
 
-  constructor({ createWindow, preloadPath, rendererUrl }: DesktopWindowManagerOptions) {
+  constructor({
+    appIconPath,
+    createWindow,
+    preloadPath,
+    rendererUrl,
+  }: DesktopWindowManagerOptions) {
+    this.#appIconPath = appIconPath;
     this.#createWindow = createWindow;
     this.#preloadPath = preloadPath;
     this.#rendererUrl = rendererUrl;
@@ -73,6 +82,7 @@ export class DesktopWindowManager {
     const window = this.#createWindow({
       backgroundColor: "#F6F7F5",
       height: 960,
+      icon: this.#appIconPath,
       minHeight: 800,
       minWidth: 1280,
       show: false,

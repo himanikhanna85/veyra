@@ -6,17 +6,20 @@ compression: normal
 directories:
   output: release
 files:
+  - build/icon.png
   - dist/client/**/*
   - dist/electron/**/*
   - package.json
 mac:
   category: public.app-category.developer-tools
   hardenedRuntime: true
+  icon: build/icon.png
   target:
     - dmg
     - zip
 win:
-  signAndEditExecutable: false
+  icon: build/icon.png
+  signExecutable: false
   target:
     - nsis
 nsis:

@@ -9,7 +9,7 @@ Done = completed and verified/documented.
 
 ## Pending
 
-- [ ] D05 — Apply the approved Veyra mark as the macOS and Windows application/package icon (`DEC-22`, `FR22.01`; `design_specification.md`).
+No task is currently approved and queued.
 
 ## Not Started
 
@@ -449,6 +449,7 @@ Done = completed and verified/documented.
 
 ## Done
 
+- [x] D05 — Applied and package-verified the approved Veyra mark for the development window, macOS bundle/DMG and Windows executable/installer (`DEC-22`, `FR22.01`; `design_specification.md`).
 - [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).
 - [x] E01.T02 — Enforced sandboxed, context-isolated, Node-free renderer execution (`P0`; `DEC-01`, `FR01.02`).
 - [x] E01.T03 — Added the explicit typed preload/main API and event boundary (`P0`; `DEC-01`, `FR01.03`).

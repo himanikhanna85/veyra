@@ -160,6 +160,21 @@ core Teach → Understanding → Test → Run → Result journey prevents later
 implementation from drifting back into generic grayscale tooling while still
 leaving non-representative PRD surfaces free to reuse the same system.
 
+## DEC-22 --- Approved desktop application mark
+
+The supplied transparent Veyra mark is the application identity asset for the
+macOS Dock/Finder bundle, Windows executable/installer and development window.
+The canonical 2000 × 2000 RGBA source lives at
+`docs/brand/veyra-app-icon-source.png`; packaging consumes the deterministic
+1024 × 1024 derivative at `apps/desktop/build/icon.png`.
+
+Reasoning: the mark uses the already-approved navigation ink and action-orange
+language, has sufficient transparent safe area for platform presentation and
+was explicitly supplied for this purpose. Keeping one lossless source and one
+generated packaging input prevents platform variants from drifting. Platform
+tools may scale or apply their native mask, but must not redraw, crop, add a
+wordmark or bake in rounded corners.
+
 # 2. Product Vision and Thesis
 
 > **Veyra learns how an application behaves, converts human
@@ -374,8 +389,8 @@ persistence remains E02 scope because project records do not exist yet.
 
 E01 produces macOS Apple Silicon/Intel DMG and ZIP artifacts plus an x64
 Windows NSIS installer, with native macOS and Windows packaging configured in CI.
-The current artifacts are unsigned and use Electron's default icon. macOS code
-signing/notarization, Windows signing, branded icons and auto-update policy are
+The current artifacts are unsigned and use the approved Veyra application mark.
+macOS code signing/notarization, Windows signing and auto-update policy are
 commercial hardening work under E22. The Apple Silicon package was executed
 locally; Intel macOS and Windows artifacts require native target-host runtime
 validation before external distribution.
@@ -2114,7 +2129,7 @@ a ship report.
 
 OD-01 (desktop shell) was resolved by DEC-01 during the E01 bootstrap on
 2026-09-15. OD-02 (component system) and OD-03 (visual brand) were resolved by
-DEC-21 and `design_specification.md` on 2026-09-15.
+DEC-21, DEC-22 and `design_specification.md` on 2026-09-15.
 
 **OD-04 Authentication/licensing:** required before broad commercial
 release, not the first local vertical slice.
