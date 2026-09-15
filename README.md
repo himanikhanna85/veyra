@@ -38,9 +38,9 @@ Veyra V0 is planned as a local-first desktop browser QA product for manual and l
 
 V0 intentionally excludes API testing, multi-browser execution, scheduling, parallel execution, full self-healing, CI/CD integrations, autonomous exploration, and unsupported quality scores.
 
-## Architecture direction
+## Architecture
 
-The proposed V0 stack is:
+The implemented desktop foundation and V0 direction are:
 
 - Electron, React, and TypeScript;
 - Node.js application core;
@@ -94,7 +94,7 @@ Explore state and transition coverage, learned invariants, safe exploration, cha
 
 ## Documentation
 
-The project is currently in product-definition and design preparation. The main documents are:
+The main project documents are:
 
 - [`01_Product_Thesis_and_Innovation_Pillars.md`](docs/01_Product_Thesis_and_Innovation_Pillars.md)
 - [`02_Competitive_Validation.md`](docs/02_Competitive_Validation.md)
@@ -105,10 +105,28 @@ The project is currently in product-definition and design preparation. The main 
 - [`07_Veyra_Innovation_Queue.md`](docs/07_Veyra_Innovation_Queue.md)
 - [`Veyra_PRD.md`](docs/Veyra_PRD.md)
 - [`idea_browserautomation.md`](docs/idea_browserautomation.md)
+- [`design_specification.md`](design_specification.md)
+- [`CLAUDE.md`](CLAUDE.md)
+- [`tasks.md`](tasks.md)
+- [`status_quo.md`](status_quo.md)
+- [`commands.md`](commands.md)
 
-The PRD is the implementation requirements baseline. The next planned lifecycle phase is product design, followed by a traceable implementation plan.
+The PRD is the implementation requirements baseline; `tasks.md` is the
+traceable delivery tracker.
+
+## Run the desktop application
+
+```bash
+cd apps/desktop
+npm install
+npm run smoke:desktop
+```
+
+See [`commands.md`](commands.md) for development mode, alternate ports, tests,
+packaging and target-host validation commands.
 
 ## Status
 
-Veyra is currently in the product-definition stage. Architecture and release scope have been documented; implementation has not yet begun in this repository.
-
+E01 Desktop Application Foundation and the approved Overview renderer are
+implemented. The next logical slice is E02 Local Persistence & Project
+Lifecycle; it is not yet approved or in progress.

@@ -1,0 +1,25 @@
+appId: com.veyra.desktop
+productName: Veyra
+artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+asar: true
+compression: normal
+directories:
+  output: release
+files:
+  - dist/client/**/*
+  - dist/electron/**/*
+  - package.json
+mac:
+  category: public.app-category.developer-tools
+  hardenedRuntime: true
+  target:
+    - dmg
+    - zip
+win:
+  signAndEditExecutable: false
+  target:
+    - nsis
+nsis:
+  allowToChangeInstallationDirectory: true
+  oneClick: false
+  perMachine: false

@@ -9,15 +9,7 @@ Done = completed and verified/documented.
 
 ## Pending
 
-### M01 — Desktop Foundation & Persistence
-
-#### E01 — Desktop Application Foundation
-
-- [ ] E01.T01 — Deliver the installable desktop shell (`P0`; `FR01.01`).
-- [ ] E01.T02 — Enforce renderer isolation from filesystem and secrets (`P0`; `FR01.02`).
-- [ ] E01.T03 — Define the typed renderer-to-main-process boundary (`P0`; `FR01.03`).
-- [ ] E01.T04 — Implement create/open/close/reopen application lifecycle (`P0`; `FR01.04`).
-- [ ] E01.T05 — Package supported macOS and Windows builds (`P1`; `FR01.05`).
+No task is currently approved and queued.
 
 ## Not Started
 
@@ -457,6 +449,11 @@ Done = completed and verified/documented.
 
 ## Done
 
+- [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).
+- [x] E01.T02 — Enforced sandboxed, context-isolated, Node-free renderer execution (`P0`; `DEC-01`, `FR01.02`).
+- [x] E01.T03 — Added the explicit typed preload/main API and event boundary (`P0`; `DEC-01`, `FR01.03`).
+- [x] E01.T04 — Implemented single-instance window lifecycle, bounded cleanup and interrupted-operation recovery (`P0`; `DEC-01`, `FR01.04`).
+- [x] E01.T05 — Produced macOS arm64/x64 and Windows x64 installer artifacts with native CI packaging and documented unsigned/runtime-validation limits (`P1`; `DEC-01`, `FR01.05`).
 - [x] D04 — Implemented and verified the approved Veyra tokens, accessible primitives, global desktop shell and Overview reference screen (`DEC-21`, `NFR90.01`–`NFR90.03`; `design_specification.md`; `design-qa.md`).
 - [x] D01 — Compared Veyra V0/V1 with Spur and prepared the seven-screen Claude Design brief (`DEC-17`; `docs/Spur_Parity_and_Claude_Design_Prompt.md`).
 - [x] D02 — Reviewed and approved the seven-screen `Veyra Prototype.dc.html` direction as the final Veyra product language (`DEC-21`).

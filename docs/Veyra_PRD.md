@@ -3,8 +3,8 @@
 **Document:** `PRD.md`\
 **Product:** Veyra\
 **Category:** Application Quality Intelligence Platform (AQIP)\
-**Version:** 1.0\
-**Date:** 14 September 2026\
+**Version:** 1.1\
+**Date:** 15 September 2026\
 **Primary implementation baseline:** V0 Commercial Product\
 **Forward architecture:** V1 requirements are numbered here but are not
 V0 commitments.
@@ -38,8 +38,14 @@ requirement; **P2** V1/later; **R** research.
 
 ## DEC-01 --- Desktop-first V0
 
-Electron + React + TypeScript + Node.js is the recommended V0 shell;
-product-domain objects must remain shell-independent.
+Electron + React + TypeScript + Node.js is the locked V0 shell;
+product-domain objects must remain shell-independent. Electron is preferred
+over Tauri for V0 because Playwright, worker orchestration, local inference,
+filesystem-backed evidence and debugging can remain in one TypeScript/Node.js
+runtime family. The renderer stays sandboxed and UI-only behind an explicit
+preload interface so this convenience does not grant it Node.js privileges.
+The E01 implementation baseline is Electron 44, React 19 and TypeScript 7;
+exact tool versions remain reproducible through the committed lockfile.
 
 ## DEC-02 --- Playwright as adapter
 
@@ -348,6 +354,31 @@ recovery.
 
 Commercial V0 should support macOS and Windows; limitations must be
 documented.
+
+### E01 implementation baseline --- 15 September 2026
+
+The shipped foundation packages the approved React shell behind a privileged
+local application origin. Its renderer is sandboxed, context-isolated and
+Node-free; a bundled preload exposes only named, typed calls/events whose main
+handlers authorize the sending frame. Browser automation, evidence processing
+and intelligence remain main-process/worker responsibilities and are not
+renderer imports.
+
+The main process owns a single-instance window lifecycle and a versioned,
+atomic journal beneath Electron's stable application-data directory. Registered
+operations receive one bounded shutdown request; unfinished or previously
+unclean operations are carried into the next launch as pending recovery.
+This establishes the restart-safe storage location and service lifecycle that
+E02 project persistence and E05/E13 workers must use. End-to-end project record
+persistence remains E02 scope because project records do not exist yet.
+
+E01 produces macOS Apple Silicon/Intel DMG and ZIP artifacts plus an x64
+Windows NSIS installer, with native macOS and Windows packaging configured in CI.
+The current artifacts are unsigned and use Electron's default icon. macOS code
+signing/notarization, Windows signing, branded icons and auto-update policy are
+commercial hardening work under E22. The Apple Silicon package was executed
+locally; Intel macOS and Windows artifacts require native target-host runtime
+validation before external distribution.
 
 ## E02 --- Local Persistence & Project Lifecycle
 
@@ -2081,11 +2112,9 @@ a ship report.
 
 # 32. Open Decisions Before Coding
 
-OD-02 (component system) and OD-03 (visual brand) were resolved by DEC-21 and
-`design_specification.md` on 2026-09-15.
-
-**OD-01 Desktop shell:** Electron is recommended; formally freeze during
-bootstrap if not already treated as locked.
+OD-01 (desktop shell) was resolved by DEC-01 during the E01 bootstrap on
+2026-09-15. OD-02 (component system) and OD-03 (visual brand) were resolved by
+DEC-21 and `design_specification.md` on 2026-09-15.
 
 **OD-04 Authentication/licensing:** required before broad commercial
 release, not the first local vertical slice.

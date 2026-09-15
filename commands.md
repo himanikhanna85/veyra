@@ -2,13 +2,20 @@
 
 Run these commands from the repository root unless a section says otherwise.
 
-## Desktop renderer foundation
+## Desktop application
 
 Install dependencies:
 
 ```bash
 cd /Users/anandarora/Veyra/apps/desktop
 npm install
+```
+
+For a clean, lockfile-exact install (the CI path):
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm ci
 ```
 
 Start the local renderer preview:
@@ -25,6 +32,29 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm run dev -- --host 127.0.0.1 --port 4174 --strictPort
 ```
 
+Open that development renderer in the isolated Electron shell from a second
+macOS/Linux terminal:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+VEYRA_RENDERER_URL=http://127.0.0.1:4173/ npm run start:desktop
+```
+
+When using the alternate port, the Electron URL must match it:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+VEYRA_RENDERER_URL=http://127.0.0.1:4174/ npm run start:desktop
+```
+
+The equivalent Windows PowerShell command is:
+
+```powershell
+Set-Location C:\path\to\Veyra\apps\desktop
+$env:VEYRA_RENDERER_URL = "http://127.0.0.1:4173/"
+npm run start:desktop
+```
+
 Run the component and shell tests:
 
 ```bash
@@ -32,11 +62,27 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm test
 ```
 
-Build the production renderer and prepare the static package:
+Type-check the Electron main/preload boundary:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run typecheck
+```
+
+Build the production renderer, Electron main/preload processes and static
+hosting package:
 
 ```bash
 cd /Users/anandarora/Veyra/apps/desktop
 npm run build
+```
+
+Boot the production app twice under Electron and verify the preload allowlist,
+renderer isolation, clean shutdown and persisted lifecycle journal:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run smoke:desktop
 ```
 
 Verify static routing and packaging behavior:
@@ -46,3 +92,53 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm run test:sites
 ```
 
+Audit production and development dependencies:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm audit --omit=dev
+npm audit
+```
+
+## Desktop packaging
+
+Create an unpacked Apple Silicon macOS application for fast local checks:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run package:dir
+```
+
+Create Apple Silicon and Intel macOS DMG/ZIP packages:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run package:mac
+```
+
+Create the x64 Windows NSIS installer:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run package:win
+```
+
+After both packaging commands, verify every expected artifact exists and is
+non-empty:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+npm run verify:packages
+```
+
+Smoke-test the unpacked Apple Silicon macOS application through two launches:
+
+```bash
+cd /Users/anandarora/Veyra/apps/desktop
+VEYRA_EXECUTABLE="release/mac-arm64/Veyra.app/Contents/MacOS/Veyra" node scripts/smoke-electron.mjs
+```
+
+Artifacts are written to `/Users/anandarora/Veyra/apps/desktop/release/`.
+E01 artifacts are unsigned and use Electron's default icon; signing,
+notarization, branded icons and update channels are E22 work. Run each package
+on its target operating system before external distribution.

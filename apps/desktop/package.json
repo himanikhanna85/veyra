@@ -1,30 +1,49 @@
 {
-  "name": "desktop",
-  "version": "0.0.0",
+  "name": "veyra",
+  "version": "0.1.0",
+  "description": "Local-first desktop browser testing for teams",
+  "author": "Himani Khanna <himanikhanna85@gmail.com>",
+  "contributors": [
+    "Codex <codex@openai.com>"
+  ],
+  "main": "dist/electron/main.js",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build && node scripts/prepare-sites-build.mjs",
+    "build": "npm run build:renderer && npm run build:electron && npm run build:sites",
+    "build:renderer": "vite build",
+    "build:electron": "tsc -p tsconfig.electron.json && esbuild electron/preload.ts --bundle --platform=node --format=cjs --external:electron --outfile=dist/electron/preload.cjs && node scripts/prepare-electron-build.mjs",
+    "build:sites": "node scripts/prepare-sites-build.mjs",
+    "typecheck": "tsc -p tsconfig.electron.json --noEmit",
+    "start:desktop": "electron .",
+    "smoke:desktop": "npm run build && node scripts/smoke-electron.mjs",
+    "package:dir": "npm run build && electron-builder --dir --mac --arm64",
+    "package:mac": "npm run build && electron-builder --mac dmg zip --arm64 --x64",
+    "package:win": "npm run build && electron-builder --win nsis --x64",
+    "verify:packages": "node scripts/verify-package-artifacts.mjs",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:sites": "node --test tests/sites-worker.test.mjs"
   },
-  "dependencies": {
+  "devDependencies": {
     "@fontsource/instrument-serif": "^5.3.0",
     "@fontsource/inter": "^5.3.0",
-    "@vitejs/plugin-react": "5.0.4",
-    "lucide-react": "0.468.0",
-    "react": "19.2.0",
-    "react-dom": "19.2.0",
-    "vite": "6.4.2"
-  },
-  "devDependencies": {
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",
     "@testing-library/user-event": "14.5.2",
+    "@types/node": "^26.5.1",
+    "@vitejs/plugin-react": "6.1.1",
+    "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
+    "esbuild": "^0.28.2",
     "jsdom": "25.0.1",
-    "vitest": "3.0.5"
+    "lucide-react": "^0.468.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "typescript": "^7.0.2",
+    "vite": "8.3.0",
+    "vitest": "5.0.1"
   }
 }

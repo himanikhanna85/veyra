@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2022", "DOM"],
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "noEmitOnError": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "outDir": "dist/electron",
+    "rootDir": "electron",
+    "strict": true,
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "exclude": ["electron/**/*.test.ts"],
+  "include": ["electron/**/*.ts"]
+}
