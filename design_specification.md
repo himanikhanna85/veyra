@@ -125,8 +125,9 @@ shell and standard components; it may not introduce a second visual language.
 
 - Page heading: uppercase `Local workspace` eyebrow, `Data & storage` title and
   one sentence explaining that structured records and evidence are separate.
-- Header actions: blue `Restore project`, then secondary `Refresh`. Both are
-  disabled outside the desktop runtime with an explanatory neutral notice.
+- Header actions: blue `Restore project`, then secondary `Refresh`. Use the
+  shared button icon slot with a 7 px icon-to-label gap. Both are disabled
+  outside the desktop runtime with an explanatory neutral notice.
 - Summary: three equal white 18 px-radius cards for Structured data, Evidence
   (including file count) and Total local usage.
 - Projects: one bordered white panel. Each row shows project name, evidence

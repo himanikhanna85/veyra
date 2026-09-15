@@ -64,6 +64,24 @@ final result: passed
 
 ---
 
+# Veyra D08 Storage Button Spacing QA
+
+**Source:** user capture `Screenshot 2026-09-15 at 10.22.52 PM.png`  
+**Implementation:** `apps/desktop/design-qa-d08-button-spacing.png`  
+**Comparison:** `apps/desktop/design-qa-d08-comparison.png`
+
+- Root cause: storage actions placed Lucide icons inside the label child instead
+  of using the shared Button icon slot, so the button's flex gap could not apply.
+- Restore, Refresh, Export and Clean Evidence now use the shared icon contract.
+- Computed icon-to-label gap is 7 px; button dimensions and surrounding 8 px
+  action-group gap remain unchanged.
+- Focus, disabled state and accessible button names are preserved. Targeted UI
+  tests pass. No P0, P1 or P2 visual issues remain.
+
+final result: passed
+
+---
+
 # Veyra D06 Sidebar Brand QA
 
 **Source assets:** `docs/brand/veyra_tr_icon.png`, `docs/brand/veyra_rectlogo.png`  

@@ -439,6 +439,7 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] D08 — Corrected icon-to-label spacing in the Data screen Restore project, Refresh, Export and Clean Evidence actions (`DEC-21`; `design_specification.md`; `design-qa.md`).
 - [x] D07 — Simplified E02 testing to one repository-root command with visible root-level test artifacts and plain-language output (`FR02.01`–`FR02.07`; `commands.md`).
 - [x] E02.T01 — Persisted structured project data locally in versioned SQLite storage (`P0`; `FR02.01`).
 - [x] E02.T02 — Stored screenshots/traces/reports in a separate evidence filesystem tree (`P0`; `FR02.02`).

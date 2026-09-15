@@ -50,8 +50,8 @@ export function StorageScreen() {
           <p>Project definitions stay in versioned local storage. Screenshots, traces and reports are stored separately.</p>
         </div>
         <div className="storage-heading__actions">
-          <Button disabled={!api} onClick={() => void restore()} variant="primary"><ArchiveRestore size={16} />Restore project</Button>
-          <Button disabled={!api} onClick={() => void refresh()} variant="secondary"><RefreshCw size={16} />Refresh</Button>
+          <Button disabled={!api} icon={ArchiveRestore} onClick={() => void restore()} variant="primary">Restore project</Button>
+          <Button disabled={!api} icon={RefreshCw} onClick={() => void refresh()} variant="secondary">Refresh</Button>
         </div>
       </div>
 
@@ -69,8 +69,8 @@ export function StorageScreen() {
               <article className="storage-project" key={project.id}>
                 <div><strong>{project.name}</strong><span>{formatBytes(project.evidenceBytes)} evidence · {project.evidenceFiles} files</span></div>
                 <div>
-                  <Button onClick={() => void api.exportProjectBackup(project.id)} variant="secondary"><Download size={15} />Export</Button>
-                  <Button onClick={() => void clean(project.id)} variant="secondary"><Trash2 size={15} />{pendingClean === project.id ? "Confirm clean" : "Clean evidence"}</Button>
+                  <Button icon={Download} onClick={() => void api.exportProjectBackup(project.id)} variant="secondary">Export</Button>
+                  <Button icon={Trash2} onClick={() => void clean(project.id)} variant="secondary">{pendingClean === project.id ? "Confirm clean" : "Clean evidence"}</Button>
                 </div>
               </article>
             ))}
