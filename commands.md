@@ -62,18 +62,25 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm test
 ```
 
-Run the isolated E02 persistence demonstration. It creates a project, immutable
-run snapshot and external evidence file; exports and restores a checksummed
-backup; cleans old evidence; and prints the retained temporary backup path:
+Run the complete E02 quick test from the repository root:
 
 ```bash
-cd /Users/anandarora/Veyra/apps/desktop
-rtk npm run demo:e02
+cd /Users/anandarora/Veyra
+rtk npm run test:e02
 ```
 
-Use the printed `backupPath` with **Data → Restore project** to exercise the
-native restore picker. The demo operates only in a new temporary directory and
-does not modify the normal Veyra application-data store.
+The command prints five plain-language checks and writes its inspectable output
+to `/Users/anandarora/Veyra/e02-test-output/`. Use
+`e02-test-output/commerce-storefront.veyra-project.json` with **Data → Restore
+project** to exercise the native picker. Each run replaces only this test-output
+folder and never modifies Veyra's normal application data.
+
+Build and open the production desktop application from the repository root:
+
+```bash
+cd /Users/anandarora/Veyra
+rtk npm run start:desktop
+```
 
 Type-check the Electron main/preload boundary:
 

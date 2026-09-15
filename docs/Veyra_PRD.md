@@ -460,6 +460,14 @@ format version, checksum, identifiers, evidence paths/extensions and byte sizes,
 then commits structured rows transactionally and removes partial evidence on
 failure.
 
+E02 verification is intentionally exposed from the repository root as
+`npm run test:e02`. It writes only to the visible, ignored
+`e02-test-output/` folder and reports plain-language assertions for structured
+data, separate evidence, export/restore, historical integrity and cleanup.
+This root wrapper was chosen over requiring product stakeholders to navigate
+the nested desktop package or interpret raw database/test-runner output; the
+underlying module tests remain available for engineering diagnostics.
+
 ## E03 --- Projects & Environments
 
 **Module:** M02\

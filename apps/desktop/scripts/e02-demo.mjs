@@ -1,11 +1,14 @@
-import { mkdtemp } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 
 const require = createRequire(import.meta.url);
 const { ProjectStore } = require("../dist/electron/project-store.js");
-const root = await mkdtemp(join(tmpdir(), "veyra-e02-demo-"));
+const repositoryRoot = fileURLToPath(new URL("../../../", import.meta.url));
+const root = join(repositoryRoot, "e02-test-output");
+await rm(root, { recursive: true, force: true });
+await mkdir(root, { recursive: true });
 const source = new ProjectStore(join(root, "source"));
 const backupPath = join(root, "commerce-storefront.veyra-project.json");
 
@@ -22,7 +25,26 @@ const before = await restored.getStorageUsage("commerce-storefront-demo");
 const cleanup = await restored.cleanEvidence("commerce-storefront-demo", "2025-01-01T00:00:00.000Z");
 const after = await restored.getStorageUsage("commerce-storefront-demo");
 const run = restored.getCompletedRun("run-demo-1");
+const project = restored.getProject("commerce-storefront-demo");
+const definition = restored.getDefinition("commerce-storefront-demo", "test", "checkout");
 restored.close();
 
-if (!run || before.evidenceFiles !== 1 || cleanup.deletedFiles !== 1 || after.evidenceFiles !== 0) throw new Error("E02 demo verification failed");
-console.log(JSON.stringify({ backupPath, before, cleanup, after, historicalRun: run, result: "VEYRA_E02_DEMO_READY" }, null, 2));
+if (!project || project.name !== "Commerce Storefront Demo" || project.environmentName !== "Staging") throw new Error("E02 project persistence verification failed");
+if (!definition || definition.revision !== 1 || definition.payload.expected !== "Order created") throw new Error("E02 definition restore verification failed");
+if (!run || run.outcome !== "PASS" || run.definitionSnapshot.expected !== "Order created") throw new Error("E02 historical integrity verification failed");
+if (before.evidenceFiles !== 1 || before.evidenceBytes !== 13) throw new Error("E02 separate evidence verification failed");
+if (cleanup.deletedFiles !== 1 || cleanup.deletedBytes !== 13 || after.evidenceFiles !== 0) throw new Error("E02 evidence cleanup verification failed");
+console.log(`
+E02 quick test passed
+
+✓ Project data saved in local SQLite storage
+✓ Evidence stored separately (${before.evidenceFiles} file, ${before.evidenceBytes} bytes)
+✓ Project backup exported and restored successfully
+✓ Historical run remained unchanged (${run.outcome}: ${run.definitionSnapshot.expected})
+✓ Old evidence cleaned without deleting the project (${cleanup.deletedFiles} file removed)
+
+Sample backup:
+${backupPath}
+
+You can now open Veyra → Data → Restore project and select that file.
+`);

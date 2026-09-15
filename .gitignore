@@ -1,4 +1,5 @@
 node_modules/
+e02-test-output/
 apps/desktop/release/
 dist/
 .DS_Store
