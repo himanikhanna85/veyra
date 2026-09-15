@@ -46,6 +46,7 @@ describe("DesktopWindowManager", () => {
     const window = createWindowDouble();
     const factory = vi.fn<WindowFactory>(() => window);
     const manager = new DesktopWindowManager({
+      appIconPath: "/app/icon.png",
       createWindow: factory,
       preloadPath: "/app/preload.js",
       rendererUrl: "veyra://app/index.html",
@@ -56,6 +57,7 @@ describe("DesktopWindowManager", () => {
     expect(factory).toHaveBeenCalledWith(
       expect.objectContaining({
         height: 960,
+        icon: "/app/icon.png",
         minHeight: 800,
         minWidth: 1280,
         show: false,
@@ -87,6 +89,7 @@ describe("DesktopWindowManager", () => {
       .mockReturnValueOnce(first)
       .mockReturnValueOnce(second);
     const manager = new DesktopWindowManager({
+      appIconPath: "/app/icon.png",
       createWindow: factory,
       preloadPath: "/app/preload.js",
       rendererUrl: "veyra://app/index.html",

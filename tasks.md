@@ -9,7 +9,7 @@ Done = completed and verified/documented.
 
 ## Pending
 
-No task is currently approved and queued.
+- [ ] D05 — Apply the approved Veyra mark as the macOS and Windows application/package icon (`DEC-22`, `FR22.01`; `design_specification.md`).
 
 ## Not Started
 
