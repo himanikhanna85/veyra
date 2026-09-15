@@ -7,6 +7,7 @@ describe("Veyra desktop foundation", () => {
   it("opens on the approved Overview shell", () => {
     render(<App />);
 
+    expect(screen.getByRole("img", { name: "Veyra" })).toBeVisible();
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Good morning, Himani" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute(

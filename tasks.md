@@ -449,6 +449,7 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] D06 — Replaced the generic sidebar lockup with the approved transparent Veyra mark and exact rectlogo-derived wordmark artwork (`DEC-23`, `SCR-OVERVIEW`; `design_specification.md`; `design-qa.md`).
 - [x] D05 — Applied and package-verified the approved Veyra mark for the development window, macOS bundle/DMG and Windows executable/installer (`DEC-22`, `FR22.01`; `design_specification.md`).
 - [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).
 - [x] E01.T02 — Enforced sandboxed, context-isolated, Node-free renderer execution (`P0`; `DEC-01`, `FR01.02`).

@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   Clock3,
   Database,
-  Diamond,
   Layers3,
   LayoutGrid,
   LockKeyhole,
@@ -15,6 +14,8 @@ import {
   Search,
   Settings,
 } from "lucide-react";
+import veyraMark from "../assets/brand/veyra-tr-icon.png";
+import veyraWordmark from "../assets/brand/veyra-wordmark-light.png";
 import { CommandSearch } from "./CommandSearch.jsx";
 
 const primaryNavigation = [
@@ -68,11 +69,11 @@ export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
       </a>
 
       <aside aria-label="Veyra workspace" className="sidebar">
-        <div className="brand-lockup">
+        <div aria-label="Veyra" className="brand-lockup" role="img">
           <span aria-hidden="true" className="brand-mark">
-            <Diamond size={12} strokeWidth={2.2} />
+            <img alt="" src={veyraMark} />
           </span>
-          <span>Veyra</span>
+          <img alt="" className="brand-wordmark" src={veyraWordmark} />
         </div>
 
         <div className="project-switcher-wrap">

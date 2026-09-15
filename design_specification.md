@@ -44,6 +44,12 @@ implementation tasks and may not introduce another visual language.
   and development desktop window. Platform-native masks and scaling are allowed.
 - Do not crop or redraw the mark, add a wordmark/background, or pre-round the
   corners. Changes require a new approved source and a DEC update.
+- In-product branding uses the separate approved sources
+  `docs/brand/veyra_tr_icon.png` and `docs/brand/veyra_rectlogo.png`. In the
+  dark sidebar, show the transparent mark inside a 28 × 28 px white tile with
+  7 px radius, followed by the rectlogo's exact wordmark artwork at 17 px high.
+  Do not substitute a font-rendered label or generic symbol. Expose the complete
+  lockup as one accessible image named “Veyra”; its child artwork is decorative.
 
 ## 1. Product Design Principles
 
@@ -97,7 +103,7 @@ implementation tasks and may not introduce another visual language.
 - Header: 64 px high, white, 1 px bottom border `#E2E6EA`, 32 px horizontal
   padding.
 - Main content: flexes to remaining width; typical page padding 36–40 px.
-- Sidebar order: Veyra logo, project switcher, Overview, Teach, Tests, Modules,
+- Sidebar order: approved Veyra mark-and-wordmark lockup, project switcher, Overview, Teach, Tests, Modules,
   Runs, Data; Settings, Help and profile are anchored at the bottom.
 - Header order: project/page breadcrumb, 360 px maximum command search,
   environment pill, local-run pill, notification control and avatar.

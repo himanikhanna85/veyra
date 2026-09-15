@@ -8,9 +8,10 @@
 - macOS arm64/x64 DMG and ZIP packages and a Windows x64 NSIS installer build successfully. GitHub Actions is configured to repeat tests and packaging on native macOS and Windows runners after the repository is pushed.
 - Source and packaged Apple Silicon apps passed two-launch smoke checks proving renderer isolation, IPC access, clean shutdown and persisted lifecycle state. The 23-test suite, TypeScript check, Vite/Electron build, Sites tests and both dependency audits pass.
 - The approved transparent Veyra mark is embedded in the development window, macOS bundle/Dock metadata and Windows executable/installer resources; its lossless source and generated packaging derivative are both versioned.
+- The desktop sidebar now uses the supplied `veyra_tr_icon.png` mark and the exact rectlogo-derived wordmark artwork. The former generic blue diamond and font-rendered label have been removed; the combined lockup is exposed accessibly as “Veyra”.
 - Current packaging limits are deliberate E22 work: artifacts are unsigned and have no update channel. Windows and Intel macOS artifacts are built but still need runtime execution on native target hosts; this ARM machine lacks the Intel compatibility runtime.
 - Project records do not exist yet. E01 established their stable app-data and lifecycle boundary; structured project persistence, migrations, backup and restore remain E02.
-- `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21`, which locks the approved Veyra visual system and seven-screen representative flow.
+- `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21` through `DEC-23`, locking the approved visual system, representative flow, application mark and in-product lockup.
 - Root `design_specification.md` is now the design source of truth. It formalizes the approved `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` shell, tokens, components, interactions, accessibility contract, overlays and seven screens.
 - The approved product language is a dark `#101827` navigation shell, warm `#F6F7F5` workspace, Inter with limited Instrument Serif, blue confirmation/selection, one orange high-energy action per screen and teal links/assertions.
 - Result semantics are locked: PASS, FAIL, BLOCKED, ERROR, INTERRUPTED, RUNNING and QUEUED use an icon plus label and are never communicated by colour alone.
@@ -31,7 +32,7 @@
 - Local model packaging and cloud model providers (`OD-05`, `OD-06`).
 - Evidence retention defaults and empirical pilot reliability thresholds (`OD-07`, `OD-08`).
 - Pricing and structured project export format (`OD-09`, `OD-10`).
-- Component system and visual brand are no longer open; `DEC-21`, `DEC-22` and `design_specification.md` resolve them.
+- Component system and visual brand are no longer open; `DEC-21` through `DEC-23` and `design_specification.md` resolve them.
 
 ## Most useful next action
 

@@ -61,3 +61,28 @@
 - Iteration 2: exact 1440 × 960 source and implementation frames compared side by side; all P2 findings resolved. Exact 1280 × 800 responsive and interaction checks also passed.
 
 final result: passed
+
+---
+
+# Veyra D06 Sidebar Brand QA
+
+**Source assets:** `docs/brand/veyra_tr_icon.png`, `docs/brand/veyra_rectlogo.png`  
+**Implementation screenshot:** `apps/desktop/design-qa-brand-1440x960.png`  
+**State:** Overview, default project, no overlay open  
+**Viewport:** 1440 × 960 CSS px
+
+## Findings
+
+- The supplied dark transparent mark would lose contrast if placed directly on
+  the navigation-ink sidebar. A compact neutral tile preserves the original
+  artwork and makes its dark geometry and orange accent readable.
+- The wordmark is extracted from the supplied rectlogo as transparent artwork,
+  so its custom letterforms are exact and do not depend on a guessed UI font.
+- At 28 px mark size and 17 px wordmark height, the lockup fits the existing
+  sidebar rhythm without changing the project switcher or navigation geometry.
+- The former generic diamond and text label are absent. The new two-asset
+  lockup is announced as one image named “Veyra”, with decorative child images.
+- No P0, P1 or P2 visual issues remain. The browser console is clean, the full
+  test suite passes and the production build includes both brand assets.
+
+final result: passed

@@ -175,6 +175,21 @@ generated packaging input prevents platform variants from drifting. Platform
 tools may scale or apply their native mask, but must not redraw, crop, add a
 wordmark or bake in rounded corners.
 
+## DEC-23 --- Approved in-product sidebar lockup
+
+The global sidebar uses the supplied transparent mark from
+`docs/brand/veyra_tr_icon.png` and the exact wordmark letterforms from
+`docs/brand/veyra_rectlogo.png`. The mark is presented on a compact white tile
+for contrast against the navigation-ink sidebar; the wordmark is extracted as
+a transparent light-on-ink asset rather than approximated with interface text.
+The previous blue tile, generic diamond and Inter-rendered “Veyra” label are
+retired.
+
+Reasoning: the two approved source files are the brand authority. Keeping the
+wordmark as artwork preserves its actual custom typography, while the neutral
+tile makes the predominantly dark transparent mark legible without recolouring
+or redrawing it. The lockup remains a single accessible image named “Veyra”.
+
 # 2. Product Vision and Thesis
 
 > **Veyra learns how an application behaves, converts human
