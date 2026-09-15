@@ -136,6 +136,24 @@ V0 excludes API, multi-browser, parallelism, scheduling, full
 self-healing, mobile, visual regression, accessibility, CI/CD and
 autonomous exploration.
 
+## DEC-21 --- Approved visual system and representative V0 flow
+
+The approved product direction is the seven-screen desktop flow and
+design-system board in
+`design_inspirations/New UI Mockups/Veyra Prototype.dc.html`, formalized
+in root `design_specification.md`. The production interface uses the dark
+navigation shell, warm near-white workspace, Inter plus limited Instrument
+Serif, primary blue, high-energy orange and link/assertion teal defined there.
+Orange is reserved for one high-energy action per screen; actions and
+assertions remain visually distinct; PASS, FAIL, BLOCKED, ERROR, RUNNING and
+QUEUED always use an icon and label rather than colour alone.
+
+Reasoning: the prototype has been reviewed as the intended final product
+language, not merely inspiration. Locking its tokens, shell, hierarchy and
+core Teach → Understanding → Test → Run → Result journey prevents later
+implementation from drifting back into generic grayscale tooling while still
+leaving non-representative PRD surfaces free to reuse the same system.
+
 # 2. Product Vision and Thesis
 
 > **Veyra learns how an application behaves, converts human
@@ -2063,13 +2081,11 @@ a ship report.
 
 # 32. Open Decisions Before Coding
 
+OD-02 (component system) and OD-03 (visual brand) were resolved by DEC-21 and
+`design_specification.md` on 2026-09-15.
+
 **OD-01 Desktop shell:** Electron is recommended; formally freeze during
 bootstrap if not already treated as locked.
-
-**OD-02 Component system:** decide during design specification.
-
-**OD-03 Visual brand:** palette, typography, iconography and layouts
-belong to design specification.
 
 **OD-04 Authentication/licensing:** required before broad commercial
 release, not the first local vertical slice.
