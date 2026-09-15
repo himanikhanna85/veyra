@@ -1,6 +1,7 @@
 # Veyra
 
-![logo](docs/veyra_tr_icon.png)
+<img width="2000" height="2000" alt="veyra_tr_icon" src="https://github.com/user-attachments/assets/3309349e-ae8e-46e9-9e63-eed612e89792" />
+
 
 Veyra is an **Application Quality Intelligence Platform** that helps manual and low-code QA teams turn demonstrated browser workflows into reusable, maintainable automation.
 
