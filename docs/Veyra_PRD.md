@@ -657,6 +657,11 @@ version.
 Use clean browser contexts per isolated run/case unless explicitly
 configured.
 
+Implementation note: each controlled browser launch uses a new non-persistent
+Electron partition keyed by project id and session id. Starting a new session
+stops the old one, and the renderer receives the isolation key as metadata
+only.
+
 ### FR05.05 --- Stop \[P0\]
 
 User can terminate controlled browser execution.

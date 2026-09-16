@@ -50,6 +50,7 @@ describe("ControlledBrowser", () => {
       browserEngine: "chromium",
       browserVersion: "140.0.0.0",
       environmentName: "Staging",
+      isolationKey: "veyra-controlled.shop.session-1",
       launchedAt: "2026-09-16T08:00:00.000Z",
       projectId: "shop",
       projectName: "Shop QA",
@@ -79,6 +80,35 @@ describe("ControlledBrowser", () => {
     expect(stopped).toEqual({ sessionId: "session-1", status: "stopped" });
     expect(windows[0]?.close).toHaveBeenCalled();
     expect(browser.getSession()).toBeNull();
+  });
+
+  it("uses a clean in-memory browser partition for each project session", async () => {
+    const { createWindow, windows } = createWindowFactory();
+    const sessionIds = ["session-1", "session-2"];
+    const browser = new ControlledBrowser({
+      createSessionId: () => sessionIds.shift() ?? "session-extra",
+      createWindow,
+      now: () => new Date("2026-09-16T08:00:00.000Z"),
+    });
+
+    const first = await browser.start({
+      environmentName: "Staging",
+      projectId: "shop",
+      projectName: "Shop QA",
+      url: "https://shop.test",
+    });
+    const second = await browser.start({
+      environmentName: "Staging",
+      projectId: "billing",
+      projectName: "Billing QA",
+      url: "https://billing.test",
+    });
+
+    expect(first.isolationKey).toBe("veyra-controlled.shop.session-1");
+    expect(second.isolationKey).toBe("veyra-controlled.billing.session-2");
+    expect(windows[0]?.options.webPreferences.partition).toBe(first.isolationKey);
+    expect(windows[1]?.options.webPreferences.partition).toBe(second.isolationKey);
+    expect(windows[0]?.close).toHaveBeenCalled();
   });
 
   it("rejects non-http controlled browser URLs", async () => {

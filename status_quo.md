@@ -19,8 +19,8 @@
 - E04 Secrets & Sensitive Data is implemented. Project Settings creates logical references and supports password-masked value save, replace, clear and reference deletion. Values are encrypted through the OS-backed secure-storage adapter outside SQLite, are never returned to the renderer, and are omitted from backups.
 - Definitions persist exact logical `{ secretRef }` tokens, validate project ownership and block deletion while referenced. The production-owned `ProjectSecrets` seam is the only runtime resolver and supplies mandatory log/report redaction and non-resolving AI preparation. Secret entry activates OS window capture protection, and the project evidence writer rejects capture through the shared guard until entry ends.
 - Project backup format version 3 preserves value-free secret-reference metadata as well as environments and variables, while restore remains compatible with existing versions 1 and 2. Backups never contain secret values or secure-store locators.
-- E05 Controlled Browser has its first slice implemented. The desktop main process owns a `ControlledBrowser` module that opens the active project environment in a separate headed Chromium window, returns session metadata to the renderer, shows status in Overview and stops the session safely.
-- E05 isolation and browser-binary management are still queued: the current slice uses Electron's bundled Chromium and replaces any existing controlled session before starting a new one.
+- E05 Controlled Browser is implemented through T04. The desktop main process owns a `ControlledBrowser` module that opens the active project environment in a separate headed Chromium window, returns session metadata to the renderer, shows status in Overview and stops the session safely.
+- Each controlled browser launch uses a fresh non-persistent Electron partition keyed by project id and session id, so cookies/localStorage/session state do not bleed across projects or sessions. Browser-binary management is still queued in E05.T06; the current slice uses Electron's bundled Chromium.
 - `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21` through `DEC-23`, locking the approved visual system, representative flow, application mark and in-product lockup.
 - Root `design_specification.md` is now the design source of truth. It formalizes the approved `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` shell, tokens, components, interactions, accessibility contract, overlays and seven screens.
 - The approved product language is a dark `#101827` navigation shell, warm `#F6F7F5` workspace, Inter with limited Instrument Serif, blue confirmation/selection, one orange high-energy action per screen and teal links/assertions.
@@ -34,7 +34,7 @@
 ## In flight
 
 - No implementation task is currently in progress.
-- E05.T04 and E05.T06 remain in the Controlled Browser backlog.
+- E05.T06 remains in the Controlled Browser backlog.
 
 ## Open decisions
 
@@ -46,4 +46,4 @@
 
 ## Most useful next action
 
-Continue E05 with T04 and T06: isolate controlled-browser sessions by project/run context and formalize compatible browser-runtime management.
+Finish E05.T06: formalize compatible browser-runtime management beyond Electron's bundled Chromium.

@@ -71,7 +71,7 @@ export type ProjectCommand =
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
 export interface ControlledBrowserStartCommand { environmentId?: string; projectId: string }
-export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
+export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; isolationKey: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
 export interface ControlledBrowserStopResultDto { sessionId: string | null; status: "stopped" }
 
 export interface VeyraDesktopApi {

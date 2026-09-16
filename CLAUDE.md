@@ -62,13 +62,13 @@ must use this registry rather than adding independent quit hooks.
 renderer may start, inspect and stop a session only through the typed preload
 methods in `electron/ipc-contract.ts`; it never opens Electron browser windows
 or receives Electron objects. The current slice uses Electron's bundled
-Chromium in a separate headed window and returns metadata only: session id,
-project, environment, URL, launch time, browser engine and Chromium version.
+Chromium in a separate headed window with a fresh non-persistent partition per
+session. It returns metadata only: session id, isolation key, project,
+environment, URL, launch time, browser engine and Chromium version.
 
 Future Teach and Run work should call this module or deepen it, not create a
-parallel window-launch path. E05.T04 still needs project/run context isolation,
-and E05.T06 still needs explicit browser-runtime management beyond the bundled
-Chromium runtime.
+parallel window-launch path. E05.T06 still needs explicit browser-runtime
+management beyond the bundled Chromium runtime.
 
 ## Project persistence
 

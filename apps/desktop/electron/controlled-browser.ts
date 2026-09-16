@@ -2,6 +2,7 @@ export interface ControlledBrowserSession {
   browserEngine: "chromium";
   browserVersion: string;
   environmentName: string;
+  isolationKey: string;
   launchedAt: string;
   projectId: string;
   projectName: string;
@@ -30,6 +31,7 @@ export interface ControlledBrowserWindowOptions {
   webPreferences: {
     contextIsolation: boolean;
     nodeIntegration: boolean;
+    partition: string;
     sandbox: boolean;
     webSecurity: boolean;
   };
@@ -68,6 +70,8 @@ export class ControlledBrowser {
 
   async start(request: ControlledBrowserStartRequest): Promise<ControlledBrowserSession> {
     const url = normalizeControlledBrowserUrl(request.url);
+    const sessionId = this.#createSessionId();
+    const isolationKey = createIsolationKey(request.projectId, sessionId);
     this.stop();
     const window = this.#createWindow({
       backgroundColor: "#ffffff",
@@ -77,6 +81,7 @@ export class ControlledBrowser {
       webPreferences: {
         contextIsolation: true,
         nodeIntegration: false,
+        partition: isolationKey,
         sandbox: true,
         webSecurity: true,
       },
@@ -101,10 +106,11 @@ export class ControlledBrowser {
       browserEngine: "chromium",
       browserVersion: parseChromiumVersion(window.webContents.getUserAgent()),
       environmentName: request.environmentName,
+      isolationKey,
       launchedAt: this.#now().toISOString(),
       projectId: request.projectId,
       projectName: request.projectName,
-      sessionId: this.#createSessionId(),
+      sessionId,
       status: "running",
       url,
     };
@@ -142,4 +148,12 @@ function normalizeControlledBrowserUrl(value: string): string {
     throw new Error("Controlled browser URL must be http or https");
   }
   return url.toString();
+}
+
+function createIsolationKey(projectId: string, sessionId: string): string {
+  return `veyra-controlled.${safePartitionSegment(projectId)}.${safePartitionSegment(sessionId)}`;
+}
+
+function safePartitionSegment(value: string): string {
+  return value.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 128) || "unknown";
 }

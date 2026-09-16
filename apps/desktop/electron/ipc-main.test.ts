@@ -30,6 +30,7 @@ describe("desktop main-process IPC", () => {
       browserEngine: "chromium" as const,
       browserVersion: "140.0.0.0",
       environmentName: "Staging",
+      isolationKey: "veyra-controlled.shop.session-1",
       launchedAt: "2026-09-16T08:00:00.000Z",
       projectId: "shop",
       projectName: "Shop QA",
