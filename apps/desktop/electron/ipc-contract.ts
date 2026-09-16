@@ -5,6 +5,8 @@ export const IPC_CHANNELS = Object.freeze({
   cleanProjectEvidence: "veyra:desktop:clean-project-evidence",
   exportProjectBackup: "veyra:desktop:export-project-backup",
   restoreProjectBackup: "veyra:desktop:restore-project-backup",
+  getProjectWorkspace: "veyra:desktop:get-project-workspace",
+  applyProjectCommand: "veyra:desktop:apply-project-command",
   lifecycleChanged: "veyra:desktop:lifecycle-changed",
 } as const);
 
@@ -43,6 +45,22 @@ export interface StorageOverview {
 
 export interface EvidenceCleanupResult { deletedBytes: number; deletedFiles: number }
 export type BackupDialogResult = { canceled: true } | { canceled: false; fileName: string; projectId: string };
+export interface EnvironmentVariableDto { key: string; value: string }
+export interface ProjectEnvironmentDto { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariableDto[] }
+export interface ProjectDetailDto { applicationUrl: string; archived: boolean; environmentName: string; environments: ProjectEnvironmentDto[]; id: string; name: string }
+export interface ProjectSummaryDto { archived: boolean; environmentName: string; id: string; name: string }
+export interface ProjectOverviewDto { latestOutcome: string | null; latestRunAt: string | null; moduleItems: Array<{ id: string; name: string }>; modules: number; outcomeCounts: Record<string, number>; passRate: number | null; recentRunItems: Array<{ completedAt: string; id: string; outcome: string }>; recentRuns: number; tests: number }
+export interface ProjectWorkspace { activeProject: ProjectDetailDto | null; overview: ProjectOverviewDto | null; projects: ProjectSummaryDto[] }
+export type ProjectCommand =
+  | { type: "create"; name: string; applicationUrl: string; environmentName: string }
+  | { type: "update"; projectId: string; name: string; applicationUrl: string }
+  | { type: "save-environment"; projectId: string; environment: { id?: string; name: string; baseUrl: string } }
+  | { type: "activate-environment"; projectId: string; environmentId: string }
+  | { type: "save-variable"; projectId: string; environmentId: string; key: string; value: string }
+  | { type: "delete-variable"; projectId: string; environmentId: string; key: string }
+  | { type: "archive"; projectId: string; archived: boolean }
+  | { type: "delete"; projectId: string; confirmationName: string };
+export interface ProjectCommandResult { projectId: string | null }
 
 export interface VeyraDesktopApi {
   getAppInfo(): Promise<AppInfo>;
@@ -51,6 +69,8 @@ export interface VeyraDesktopApi {
   cleanProjectEvidence(projectId: string, olderThan: string): Promise<EvidenceCleanupResult>;
   exportProjectBackup(projectId: string): Promise<BackupDialogResult>;
   restoreProjectBackup(): Promise<BackupDialogResult>;
+  getProjectWorkspace(projectId?: string): Promise<ProjectWorkspace>;
+  applyProjectCommand(command: ProjectCommand): Promise<ProjectCommandResult>;
   onLifecycleChanged(listener: (snapshot: LifecycleSnapshot) => void): () => void;
 }
 
@@ -72,6 +92,8 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     cleanProjectEvidence: (projectId: string, olderThan: string) => ipc.invoke(IPC_CHANNELS.cleanProjectEvidence, { projectId, olderThan }) as Promise<EvidenceCleanupResult>,
     exportProjectBackup: (projectId: string) => ipc.invoke(IPC_CHANNELS.exportProjectBackup, { projectId }) as Promise<BackupDialogResult>,
     restoreProjectBackup: () => ipc.invoke(IPC_CHANNELS.restoreProjectBackup) as Promise<BackupDialogResult>,
+    getProjectWorkspace: (projectId?: string) => ipc.invoke(IPC_CHANNELS.getProjectWorkspace, { projectId }) as Promise<ProjectWorkspace>,
+    applyProjectCommand: (command: ProjectCommand) => ipc.invoke(IPC_CHANNELS.applyProjectCommand, command) as Promise<ProjectCommandResult>,
     onLifecycleChanged: (listener: (snapshot: LifecycleSnapshot) => void) => {
       const handleLifecycleChange = (_event: unknown, payload: unknown) => {
         listener(payload as LifecycleSnapshot);

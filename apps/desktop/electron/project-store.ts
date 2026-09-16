@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 
 export interface ProjectRecord {
@@ -12,6 +12,23 @@ export interface ProjectRecord {
   environmentName: string;
   id: string;
   name: string;
+  archivedAt?: string | null;
+}
+
+export interface EnvironmentVariable { key: string; value: string }
+export interface ProjectEnvironment { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariable[] }
+export interface ProjectDetail extends ProjectRecord { archived: boolean; environments: ProjectEnvironment[] }
+export interface ProjectSummary { archived: boolean; environmentName: string; id: string; name: string }
+export interface ProjectOverview {
+  latestOutcome: string | null;
+  latestRunAt: string | null;
+  moduleItems: Array<{ id: string; name: string }>;
+  modules: number;
+  outcomeCounts: Record<string, number>;
+  passRate: number | null;
+  recentRunItems: Array<{ completedAt: string; id: string; outcome: string }>;
+  recentRuns: number;
+  tests: number;
 }
 
 export interface CompletedRunRecord {
@@ -32,6 +49,7 @@ export interface StorageUsage {
 interface BackupPayload {
   definitions: Array<{ id: string; kind: string; payload: unknown; revision: number }>;
   evidence: Array<{ base64: string; createdAt: string; id: string; mediaType: string; relativePath: string; size: number }>;
+  environments?: ProjectEnvironment[];
   project: ProjectRecord;
   runs: CompletedRunRecord[];
 }
@@ -65,13 +83,35 @@ function assertIsoDate(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || Number.isNaN(Date.parse(value)) || new Date(value).toISOString() !== value) throw new Error(`${label} is invalid`);
 }
 
-function validateBackupPayload(value: unknown): BackupPayload {
+function validateBackupPayload(value: unknown, requireEnvironments = false): BackupPayload {
   if (!isRecord(value) || !isRecord(value.project) || !Array.isArray(value.definitions) || !Array.isArray(value.runs) || !Array.isArray(value.evidence)) throw new Error("Project backup payload is invalid");
   const project = value.project;
   for (const field of ["id", "name", "applicationUrl", "environmentName"] as const) if (typeof project[field] !== "string" || project[field].length === 0) throw new Error(`Project ${field} is invalid`);
   assertSafeId(project.id, "Project id");
   try { new URL(project.applicationUrl as string); } catch { throw new Error("Project application URL is invalid"); }
   const projectId = project.id as string;
+  if (requireEnvironments && value.environments === undefined) throw new Error("Version 2 project backup is missing environments");
+  if (value.environments !== undefined) {
+    if (!Array.isArray(value.environments) || value.environments.length === 0) throw new Error("Project environments are invalid");
+    let activeCount = 0;
+    const names = new Set<string>();
+    for (const environment of value.environments) {
+      if (!isRecord(environment)) throw new Error("Project environment is invalid");
+      assertSafeId(environment.id, "Environment id");
+      if (typeof environment.name !== "string" || !environment.name.trim() || names.has(environment.name)) throw new Error("Environment name is invalid or duplicated");
+      names.add(environment.name);
+      try { new URL(requiredBackupString(environment.baseUrl, "Environment URL")); } catch { throw new Error("Environment URL is invalid"); }
+      if (typeof environment.isActive !== "boolean") throw new Error("Environment active state is invalid");
+      if (environment.isActive) activeCount += 1;
+      if (!Array.isArray(environment.variables)) throw new Error("Environment variables are invalid");
+      const keys = new Set<string>();
+      for (const variable of environment.variables) {
+        if (!isRecord(variable) || typeof variable.key !== "string" || !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(variable.key) || typeof variable.value !== "string" || keys.has(variable.key)) throw new Error("Environment variable is invalid or duplicated");
+        keys.add(variable.key);
+      }
+    }
+    if (activeCount !== 1) throw new Error("Project backup must contain one active environment");
+  }
   const seenDefinitions = new Set<string>();
   for (const item of value.definitions) {
     if (!isRecord(item)) throw new Error("Definition is invalid");
@@ -105,6 +145,11 @@ function validateBackupPayload(value: unknown): BackupPayload {
   return value as unknown as BackupPayload;
 }
 
+function requiredBackupString(value: unknown, label: string): string {
+  if (typeof value !== "string") throw new Error(`${label} is invalid`);
+  return value;
+}
+
 export class ProjectStore {
   readonly #databasePath: string;
   readonly #evidenceRoot: string;
@@ -134,13 +179,128 @@ export class ProjectStore {
     const version = Number(this.#database.prepare("PRAGMA user_version").get()?.user_version ?? 0);
     if (version > SCHEMA_VERSION) throw new Error(`Unsupported future schema version ${version}`);
     if (version === SCHEMA_VERSION) return;
-    this.#database.exec(`BEGIN IMMEDIATE;
+    if (version === 0) this.#database.exec(`BEGIN IMMEDIATE;
       CREATE TABLE IF NOT EXISTS projects (id TEXT PRIMARY KEY, name TEXT NOT NULL, application_url TEXT NOT NULL, environment_name TEXT NOT NULL, updated_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS definitions (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, kind TEXT NOT NULL, id TEXT NOT NULL, revision INTEGER NOT NULL, payload_json TEXT NOT NULL, PRIMARY KEY(project_id, kind, id));
       CREATE TABLE IF NOT EXISTS completed_runs (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, completed_at TEXT NOT NULL, outcome TEXT NOT NULL, definition_snapshot_json TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS evidence_assets (id TEXT NOT NULL, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, relative_path TEXT NOT NULL UNIQUE, media_type TEXT NOT NULL, size INTEGER NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY(project_id, id));
       PRAGMA user_version = 1;
       COMMIT;`);
+    if (version < 2) this.#database.exec(`BEGIN IMMEDIATE;
+      ALTER TABLE projects ADD COLUMN archived_at TEXT;
+      CREATE TABLE environments (id TEXT NOT NULL, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, name TEXT NOT NULL, base_url TEXT NOT NULL, is_active INTEGER NOT NULL DEFAULT 0 CHECK(is_active IN (0,1)), created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(project_id,id), UNIQUE(project_id,name));
+      CREATE UNIQUE INDEX one_active_environment_per_project ON environments(project_id) WHERE is_active=1;
+      CREATE TABLE environment_variables (project_id TEXT NOT NULL, environment_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(project_id,environment_id,key), FOREIGN KEY(project_id,environment_id) REFERENCES environments(project_id,id) ON DELETE CASCADE);
+      INSERT INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) SELECT 'default',id,environment_name,application_url,1,updated_at,updated_at FROM projects;
+      PRAGMA user_version = 2;
+      COMMIT;`);
+  }
+
+  createProject(project: ProjectRecord): ProjectDetail {
+    assertSafeId(project.id, "Project id");
+    const name = project.name.trim();
+    const environmentName = project.environmentName.trim();
+    if (!name) throw new Error("Project name is required");
+    if (!environmentName) throw new Error("Environment name is required");
+    try { new URL(project.applicationUrl); } catch { throw new Error("Application URL is invalid"); }
+    const now = new Date().toISOString();
+    this.#database.exec("BEGIN IMMEDIATE");
+    try {
+      this.#database.prepare("INSERT INTO projects (id,name,application_url,environment_name,updated_at,archived_at) VALUES (?,?,?,?,?,NULL)").run(project.id, name, project.applicationUrl, environmentName, now);
+      this.#database.prepare("INSERT INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) VALUES ('default',?,?,?,?,?,?)").run(project.id, environmentName, project.applicationUrl, 1, now, now);
+      this.#database.exec("COMMIT");
+    } catch (error) { this.#database.exec("ROLLBACK"); throw error; }
+    return this.getProjectDetail(project.id)!;
+  }
+
+  updateProject(id: string, changes: { applicationUrl?: string; name?: string }): ProjectDetail {
+    const current = this.getProject(id); if (!current) throw new Error("Project not found");
+    const name = changes.name?.trim() ?? current.name;
+    const applicationUrl = changes.applicationUrl ?? current.applicationUrl;
+    if (!name) throw new Error("Project name is required");
+    try { new URL(applicationUrl); } catch { throw new Error("Application URL is invalid"); }
+    const now = new Date().toISOString();
+    this.#database.prepare("UPDATE projects SET name=?,application_url=?,updated_at=? WHERE id=?").run(name, applicationUrl, now, id);
+    this.#database.prepare("UPDATE environments SET base_url=?,updated_at=? WHERE project_id=? AND is_active=1").run(applicationUrl, now, id);
+    return this.getProjectDetail(id)!;
+  }
+
+  listProjectSummaries(includeArchived = false): ProjectSummary[] {
+    const rows = this.#database.prepare(`SELECT p.id,p.name,p.archived_at,e.name environment_name FROM projects p JOIN environments e ON e.project_id=p.id AND e.is_active=1 ${includeArchived ? "" : "WHERE p.archived_at IS NULL"} ORDER BY p.name`).all() as Record<string, unknown>[];
+    return rows.map((row) => ({ id: String(row.id), name: String(row.name), environmentName: String(row.environment_name), archived: row.archived_at !== null }));
+  }
+
+  getProjectDetail(id: string): ProjectDetail | undefined {
+    const project = this.getProject(id); if (!project) return undefined;
+    const environments = (this.#database.prepare("SELECT id,name,base_url,is_active FROM environments WHERE project_id=? ORDER BY is_active DESC,name").all(id) as Record<string, unknown>[]).map((row) => ({
+      id: String(row.id), name: String(row.name), baseUrl: String(row.base_url), isActive: Boolean(row.is_active),
+      variables: (this.#database.prepare("SELECT key,value FROM environment_variables WHERE project_id=? AND environment_id=? ORDER BY key").all(id, String(row.id)) as Record<string, unknown>[]).map((variable) => ({ key: String(variable.key), value: String(variable.value) })),
+    }));
+    return { ...project, archived: project.archivedAt != null, environments };
+  }
+
+  saveEnvironment(projectId: string, environment: { baseUrl: string; id: string; name: string }): ProjectEnvironment {
+    assertSafeId(environment.id, "Environment id");
+    if (!this.getProject(projectId)) throw new Error("Project not found");
+    if (!environment.name.trim()) throw new Error("Environment name is required");
+    try { new URL(environment.baseUrl); } catch { throw new Error("Environment URL is invalid"); }
+    const now = new Date().toISOString();
+    this.#database.prepare(`INSERT INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) VALUES (?,?,?,?,0,?,?) ON CONFLICT(project_id,id) DO UPDATE SET name=excluded.name,base_url=excluded.base_url,updated_at=excluded.updated_at`).run(environment.id, projectId, environment.name.trim(), environment.baseUrl, now, now);
+    return this.getProjectDetail(projectId)!.environments.find((item) => item.id === environment.id)!;
+  }
+
+  setActiveEnvironment(projectId: string, environmentId: string): ProjectDetail {
+    const environment = this.#database.prepare("SELECT name,base_url FROM environments WHERE project_id=? AND id=?").get(projectId, environmentId) as Record<string, unknown> | undefined;
+    if (!environment) throw new Error("Environment not found");
+    this.#database.exec("BEGIN IMMEDIATE");
+    try {
+      this.#database.prepare("UPDATE environments SET is_active=0 WHERE project_id=?").run(projectId);
+      this.#database.prepare("UPDATE environments SET is_active=1 WHERE project_id=? AND id=?").run(projectId, environmentId);
+      this.#database.prepare("UPDATE projects SET environment_name=?,application_url=?,updated_at=? WHERE id=?").run(String(environment.name), String(environment.base_url), new Date().toISOString(), projectId);
+      this.#database.exec("COMMIT");
+    } catch (error) { this.#database.exec("ROLLBACK"); throw error; }
+    return this.getProjectDetail(projectId)!;
+  }
+
+  saveEnvironmentVariable(projectId: string, environmentId: string, variable: EnvironmentVariable): void {
+    const key = variable.key.trim(); if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)) throw new Error("Variable name is invalid");
+    if (!this.#database.prepare("SELECT 1 ok FROM environments WHERE project_id=? AND id=?").get(projectId, environmentId)) throw new Error("Environment not found");
+    this.#database.prepare(`INSERT INTO environment_variables (project_id,environment_id,key,value,updated_at) VALUES (?,?,?,?,?) ON CONFLICT(project_id,environment_id,key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at`).run(projectId, environmentId, key, variable.value, new Date().toISOString());
+  }
+
+  deleteEnvironmentVariable(projectId: string, environmentId: string, key: string): void { this.#database.prepare("DELETE FROM environment_variables WHERE project_id=? AND environment_id=? AND key=?").run(projectId, environmentId, key); }
+
+  setProjectArchived(id: string, archived: boolean): ProjectDetail {
+    if (!this.getProject(id)) throw new Error("Project not found");
+    this.#database.prepare("UPDATE projects SET archived_at=?,updated_at=? WHERE id=?").run(archived ? new Date().toISOString() : null, new Date().toISOString(), id);
+    return this.getProjectDetail(id)!;
+  }
+
+  async deleteProject(id: string, confirmationName: string): Promise<void> {
+    const project = this.getProject(id); if (!project) throw new Error("Project not found");
+    if (confirmationName !== project.name) throw new Error("Enter the exact project name to delete it");
+    this.#database.prepare("DELETE FROM projects WHERE id=?").run(id);
+    await rm(join(this.#evidenceRoot, id), { recursive: true, force: true });
+  }
+
+  getProjectOverview(projectId: string): ProjectOverview {
+    if (!this.getProject(projectId)) throw new Error("Project not found");
+    const counts = this.#database.prepare("SELECT SUM(CASE WHEN kind='test' THEN 1 ELSE 0 END) tests,SUM(CASE WHEN kind='module' THEN 1 ELSE 0 END) modules FROM definitions WHERE project_id=?").get(projectId) as Record<string, unknown>;
+    const runs = this.#database.prepare("SELECT id,outcome,completed_at FROM completed_runs WHERE project_id=? ORDER BY completed_at DESC,id DESC LIMIT 20").all(projectId) as Record<string, unknown>[];
+    const moduleRows = this.#database.prepare("SELECT id,payload_json FROM definitions WHERE project_id=? AND kind='module' ORDER BY id LIMIT 3").all(projectId) as Record<string, unknown>[];
+    const sevenDayCutoff = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const sevenDayRuns = this.#database.prepare("SELECT outcome FROM completed_runs WHERE project_id=? AND completed_at>=?").all(projectId, sevenDayCutoff) as Record<string, unknown>[];
+    const passed = sevenDayRuns.filter((run) => run.outcome === "PASS").length;
+    const outcomeCounts = runs.reduce<Record<string, number>>((totals, run) => { const outcome = String(run.outcome); totals[outcome] = (totals[outcome] ?? 0) + 1; return totals; }, {});
+    return {
+      tests: Number(counts.tests ?? 0), modules: Number(counts.modules ?? 0), recentRuns: runs.length,
+      latestOutcome: runs[0] ? String(runs[0].outcome) : null,
+      latestRunAt: runs[0] ? String(runs[0].completed_at) : null,
+      passRate: sevenDayRuns.length ? Math.round((passed / sevenDayRuns.length) * 100) : null,
+      outcomeCounts,
+      recentRunItems: runs.map((run) => ({ id: String(run.id), outcome: String(run.outcome), completedAt: String(run.completed_at) })),
+      moduleItems: moduleRows.map((row) => { const payload = JSON.parse(String(row.payload_json)) as Record<string, unknown>; return { id: String(row.id), name: typeof payload.name === "string" ? payload.name : String(row.id) }; }),
+    };
   }
 
   saveProject(project: ProjectRecord): void {
@@ -148,11 +308,14 @@ export class ProjectStore {
     this.#database.prepare(`INSERT INTO projects (id,name,application_url,environment_name,updated_at) VALUES (?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET name=excluded.name, application_url=excluded.application_url, environment_name=excluded.environment_name, updated_at=excluded.updated_at`)
       .run(project.id, project.name, project.applicationUrl, project.environmentName, new Date().toISOString());
+    const now = new Date().toISOString();
+    this.#database.prepare("INSERT OR IGNORE INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) VALUES ('default',?,?,?,?,?,?)")
+      .run(project.id, project.environmentName, project.applicationUrl, 1, now, now);
   }
 
   getProject(id: string): ProjectRecord | undefined {
-    const row = this.#database.prepare("SELECT id,name,application_url,environment_name FROM projects WHERE id=?").get(id) as Record<string, unknown> | undefined;
-    return row ? { id: String(row.id), name: String(row.name), applicationUrl: String(row.application_url), environmentName: String(row.environment_name) } : undefined;
+    const row = this.#database.prepare("SELECT id,name,application_url,environment_name,archived_at FROM projects WHERE id=?").get(id) as Record<string, unknown> | undefined;
+    return row ? { id: String(row.id), name: String(row.name), applicationUrl: String(row.application_url), environmentName: String(row.environment_name), archivedAt: row.archived_at == null ? null : String(row.archived_at) } : undefined;
   }
 
   listProjects(): ProjectRecord[] {
@@ -254,26 +417,34 @@ export class ProjectStore {
     const definitions = (this.#database.prepare("SELECT kind,id,revision,payload_json FROM definitions WHERE project_id=? ORDER BY kind,id").all(projectId) as Record<string, unknown>[]).map((row) => ({ kind: String(row.kind), id: String(row.id), revision: Number(row.revision), payload: JSON.parse(String(row.payload_json)) }));
     const runs = (this.#database.prepare("SELECT id,project_id,completed_at,outcome,definition_snapshot_json FROM completed_runs WHERE project_id=? ORDER BY completed_at,id").all(projectId) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), projectId: String(row.project_id), completedAt: String(row.completed_at), outcome: String(row.outcome), definitionSnapshot: JSON.parse(String(row.definition_snapshot_json)) }));
     const evidenceRows = this.#database.prepare("SELECT id,relative_path,media_type,size,created_at FROM evidence_assets WHERE project_id=? ORDER BY id").all(projectId) as Record<string, unknown>[];
-    return { project, definitions, runs, evidence: evidenceRows.map((row) => ({ id: String(row.id), relativePath: String(row.relative_path), mediaType: String(row.media_type), size: Number(row.size), createdAt: String(row.created_at), base64: "" })) };
+    return { project, environments: this.getProjectDetail(projectId)?.environments ?? [], definitions, runs, evidence: evidenceRows.map((row) => ({ id: String(row.id), relativePath: String(row.relative_path), mediaType: String(row.media_type), size: Number(row.size), createdAt: String(row.created_at), base64: "" })) };
   }
 
   async exportProject(projectId: string, destination: string): Promise<void> {
     const payload = this.#backupPayload(projectId);
     for (const item of payload.evidence) item.base64 = (await readFile(join(this.#evidenceRoot, item.relativePath))).toString("base64");
     await mkdirSync(dirname(destination), { recursive: true });
-    await writeFile(destination, JSON.stringify({ format: "veyra-project", version: 1, checksum: checksum(payload), payload }, null, 2), { mode: 0o600 });
+    await writeFile(destination, JSON.stringify({ format: "veyra-project", version: 2, checksum: checksum(payload), payload }, null, 2), { mode: 0o600 });
   }
 
   async restoreProject(source: string): Promise<ProjectRecord> {
     if ((await stat(source)).size > 512 * 1024 * 1024) throw new Error("Project backup exceeds the 512 MB import limit");
     const document = JSON.parse(await readFile(source, "utf8")) as { format?: string; version?: number; checksum?: string; payload?: unknown };
-    if (document.format !== "veyra-project" || document.version !== 1 || !document.payload) throw new Error("Unsupported Veyra project backup");
+    if (document.format !== "veyra-project" || ![1, 2].includes(document.version ?? 0) || !document.payload) throw new Error("Unsupported Veyra project backup");
     if (checksum(document.payload as BackupPayload) !== document.checksum) throw new Error("Project backup checksum is invalid");
-    const payload = validateBackupPayload(document.payload);
+    const payload = validateBackupPayload(document.payload, document.version === 2);
     if (this.getProject(payload.project.id)) throw new Error("Project already exists");
     this.#database.exec("BEGIN IMMEDIATE");
     try {
       this.saveProject(payload.project);
+      if (payload.environments) {
+        this.#database.prepare("DELETE FROM environments WHERE project_id=?").run(payload.project.id);
+        const now = new Date().toISOString();
+        for (const environment of payload.environments) {
+          this.#database.prepare("INSERT INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) VALUES (?,?,?,?,?,?,?)").run(environment.id, payload.project.id, environment.name, environment.baseUrl, environment.isActive ? 1 : 0, now, now);
+          for (const variable of environment.variables) this.saveEnvironmentVariable(payload.project.id, environment.id, variable);
+        }
+      }
       for (const definition of payload.definitions) this.saveDefinition(payload.project.id, definition.kind, definition.id, definition.revision, definition.payload);
       for (const run of payload.runs) this.recordCompletedRun(run);
       this.#database.exec("COMMIT");

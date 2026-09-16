@@ -140,7 +140,26 @@ shell and standard components; it may not introduce a second visual language.
   `aria-live="polite"` region.
 - Counts are 11.5 px tabular labels aligned to the trailing edge.
 
-### 3.3 Global search and context controls
+### 3.4 Project switcher and settings overlay
+
+- The sidebar switcher lists every non-archived project, marks the current
+  project, and ends with **Manage current project** and **Create project**.
+- With no projects, the switcher reads **Create project** and Overview shows a
+  centered first-project state rather than sample metrics.
+- Create is a focused modal requiring project name, application URL and first
+  environment name. The blue confirm action remains disabled by native form
+  validation until required values are present.
+- Settings uses the same 18 px white modal surface. It supports project name
+  and URL editing, an environment list with one explicit Active state, adding
+  named environments, and environment-scoped non-secret key/value rows.
+- Switching environment immediately updates the sidebar/header context. Project
+  overview values always come from the selected project's persisted records.
+- Archive requires a second click labelled **Confirm archive**. Permanent
+  deletion remains disabled until the exact project name is entered.
+- Escape closes the overlay when it is not processing a change; the close
+  control has an explicit accessible label and errors are announced.
+
+### 3.5 Global search and context controls
 
 - Search placeholder: “Search tests, modules, runs”; show `⌘K` on macOS and
   `Ctrl K` on Windows.
@@ -399,7 +418,8 @@ separate duplicate tab stops.
 #### 13. Edge Cases & States
 
 - Empty project: replace metrics/work panels with an Instrument Serif welcome,
-  short explanation and orange Teach first workflow.
+  short explanation and orange Teach first workflow. With no project at all,
+  use “Create a project to begin” and a single orange Create project action.
 - No recent run: neutral empty panel with Run a test.
 - All passing: keep Needs attention collapsed/empty; do not manufacture alerts.
 - Loading: stable card skeletons; error: inline retry with diagnostic link.

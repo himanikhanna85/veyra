@@ -499,6 +499,29 @@ actions.
 
 Destructive project actions require confirmation.
 
+### E03 implementation baseline (2026-09-16)
+
+Projects, named environments and non-secret environment variables are stored
+in the versioned local project database and exposed to the sandboxed renderer
+only through the typed project-workspace command boundary. This keeps database
+ownership in Electron's main process while giving the UI one refreshable model
+for the switcher, active environment and overview.
+
+Each project always has exactly one active environment. Changing it updates the
+visible project context and effective application URL together, avoiding a
+split state where a displayed environment and execution URL disagree. The
+overview is derived from persisted definitions and immutable completed runs;
+when no records exist, it shows truthful zero/empty states rather than demo
+health data.
+
+Archive is reversible at the storage layer and hides the project from the
+normal switcher. Permanent deletion requires the exact project name and also
+removes its evidence directory. Exact-name confirmation was selected over a
+generic warning because it proves which project the user intends to remove.
+Exports now include all environments and their non-secret variables in backup
+format version 2; restore remains compatible with version 1 so the E03 schema
+does not make existing E02 backups unusable.
+
 ## E04 --- Secrets & Sensitive Data
 
 **Module:** M02/M14\

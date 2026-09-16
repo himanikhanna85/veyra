@@ -9,7 +9,7 @@ function formatBytes(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function StorageScreen() {
+export function StorageScreen({ onProjectsChanged }) {
   const [overview, setOverview] = useState(null);
   const [message, setMessage] = useState("");
   const [pendingClean, setPendingClean] = useState(null);
@@ -26,6 +26,7 @@ export function StorageScreen() {
     const result = await api.restoreProjectBackup();
     setMessage(result.canceled ? "Restore canceled." : `Restored ${result.fileName}.`);
     await refresh();
+    if (!result.canceled) await onProjectsChanged?.(result.projectId);
   }
 
   async function clean(projectId) {

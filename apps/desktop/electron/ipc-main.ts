@@ -1,4 +1,4 @@
-import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type EvidenceCleanupResult, type LifecycleSnapshot, type StorageOverview } from "./ipc-contract";
+import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StorageOverview } from "./ipc-contract";
 
 export interface IpcMainEventLike {
   senderFrame?: {
@@ -21,6 +21,8 @@ interface DesktopIpcDependencies {
   cleanProjectEvidence(projectId: string, olderThan: string): EvidenceCleanupResult | Promise<EvidenceCleanupResult>;
   exportProjectBackup(projectId: string): BackupDialogResult | Promise<BackupDialogResult>;
   restoreProjectBackup(): BackupDialogResult | Promise<BackupDialogResult>;
+  getProjectWorkspace(projectId?: string): ProjectWorkspace | Promise<ProjectWorkspace>;
+  applyProjectCommand(command: ProjectCommand): ProjectCommandResult | Promise<ProjectCommandResult>;
   ipcMain: IpcMainLike;
   isTrustedSender(url: string): boolean;
 }
@@ -32,6 +34,8 @@ export function registerDesktopIpc({
   cleanProjectEvidence,
   exportProjectBackup,
   restoreProjectBackup,
+  getProjectWorkspace,
+  applyProjectCommand,
   ipcMain,
   isTrustedSender,
 }: DesktopIpcDependencies): () => void {
@@ -62,6 +66,32 @@ export function registerDesktopIpc({
     if (typeof value !== "string" || !/^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/.test(value)) throw new Error("Invalid project id");
     return value;
   };
+  const requiredString = (value: unknown, label: string): string => {
+    if (typeof value !== "string") throw new Error(`Invalid ${label}`);
+    return value;
+  };
+  const validateProjectCommand = (payload: unknown): ProjectCommand => {
+    if (!payload || typeof payload !== "object") throw new Error("Invalid project command");
+    const value = payload as Record<string, unknown>;
+    switch (value.type) {
+      case "create": return { type: "create", name: requiredString(value.name, "project name"), applicationUrl: requiredString(value.applicationUrl, "application URL"), environmentName: requiredString(value.environmentName, "environment name") };
+      case "update": return { type: "update", projectId: validateProjectId(value.projectId), name: requiredString(value.name, "project name"), applicationUrl: requiredString(value.applicationUrl, "application URL") };
+      case "save-environment": {
+        const environment = value.environment as Record<string, unknown> | null;
+        if (!environment || typeof environment !== "object") throw new Error("Invalid environment");
+        return { type: "save-environment", projectId: validateProjectId(value.projectId), environment: { id: environment.id == null ? undefined : validateProjectId(environment.id), name: requiredString(environment.name, "environment name"), baseUrl: requiredString(environment.baseUrl, "environment URL") } };
+      }
+      case "activate-environment": return { type: "activate-environment", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId) };
+      case "save-variable": return { type: "save-variable", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId), key: requiredString(value.key, "variable name"), value: requiredString(value.value, "variable value") };
+      case "delete-variable": return { type: "delete-variable", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId), key: requiredString(value.key, "variable name") };
+      case "archive": {
+        if (typeof value.archived !== "boolean") throw new Error("Invalid archive state");
+        return { type: "archive", projectId: validateProjectId(value.projectId), archived: value.archived };
+      }
+      case "delete": return { type: "delete", projectId: validateProjectId(value.projectId), confirmationName: requiredString(value.confirmationName, "confirmation name") };
+      default: throw new Error("Invalid project command");
+    }
+  };
   ipcMain.handle(IPC_CHANNELS.cleanProjectEvidence, trustedMutation((payload) => {
     const value = payload as Record<string, unknown> | null;
     const projectId = validateProjectId(value?.projectId);
@@ -74,6 +104,15 @@ export function registerDesktopIpc({
     return exportProjectBackup(validateProjectId((payload as Record<string, unknown> | null)?.projectId));
   });
   ipcMain.handle(IPC_CHANNELS.restoreProjectBackup, trustedHandler(restoreProjectBackup));
+  ipcMain.handle(IPC_CHANNELS.getProjectWorkspace, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    const value = (payload as Record<string, unknown> | null)?.projectId;
+    return getProjectWorkspace(value == null ? undefined : validateProjectId(value));
+  });
+  ipcMain.handle(IPC_CHANNELS.applyProjectCommand, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    return applyProjectCommand(validateProjectCommand(payload));
+  });
 
   return () => {
     ipcMain.removeHandler(IPC_CHANNELS.getAppInfo);
@@ -82,5 +121,7 @@ export function registerDesktopIpc({
     ipcMain.removeHandler(IPC_CHANNELS.cleanProjectEvidence);
     ipcMain.removeHandler(IPC_CHANNELS.exportProjectBackup);
     ipcMain.removeHandler(IPC_CHANNELS.restoreProjectBackup);
+    ipcMain.removeHandler(IPC_CHANNELS.getProjectWorkspace);
+    ipcMain.removeHandler(IPC_CHANNELS.applyProjectCommand);
   };
 }

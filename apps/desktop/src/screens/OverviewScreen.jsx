@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  CircleAlert,
   ChevronRight,
   Database,
   LogIn,
@@ -8,6 +9,7 @@ import {
   Play,
   Search,
   ShoppingCart,
+  StopCircle,
   XCircle,
 } from "lucide-react";
 import { Button } from "../design-system/Button.jsx";
@@ -25,20 +27,42 @@ const modules = [
   { Icon: LogIn, name: "Login", usage: "Used by 14 tests" },
 ];
 
-export function OverviewScreen({ onNavigate }) {
+export function OverviewScreen({ error, loading, onCreateProject, onDiagnostics, onManageProject, onNavigate, onRetry, overview, project }) {
+  if (loading) return <div className="overview-screen" aria-label="Loading project overview"><div className="overview-skeleton overview-skeleton--hero" /><div className="metric-grid">{[1, 2, 3, 4].map((item) => <div className="overview-skeleton overview-skeleton--metric" key={item} />)}</div></div>;
+  if (error) return <div className="overview-screen"><section className="overview-empty"><span className="eyebrow">Workspace unavailable</span><h1>Veyra could not load your projects</h1><p>{error}</p><div className="overview-empty__actions"><Button onClick={onRetry} variant="primary">Retry</Button><button className="text-link" onClick={onDiagnostics} type="button">Open diagnostics</button></div></section></div>;
+  if (!project) return <div className="overview-screen"><section className="overview-empty"><span className="eyebrow">Your first workspace</span><h1>Create a project to begin</h1><p>Give Veyra an application URL and environment, then teach your first workflow.</p><Button onClick={onCreateProject} variant="high-energy">Create project</Button></section></div>;
+  const projectMetrics = [
+    [String(overview?.tests ?? 0), "Tests"],
+    [String(overview?.modules ?? 0), "Reusable modules"],
+    [overview?.latestRunAt ? new Date(overview.latestRunAt).toLocaleDateString() : "—", "Last run"],
+    [overview?.passRate == null ? "—" : `${overview.passRate}%`, "Pass rate — last 7 days"],
+  ];
+  const hasRuns = (overview?.recentRuns ?? 0) > 0;
+  const isPreview = project.id === "preview";
+  const attentionRuns = overview?.recentRunItems?.filter((run) => ["FAIL", "BLOCKED"].includes(run.outcome)) ?? [];
+  const latestRun = overview?.recentRunItems?.[0];
+  const statusIcon = (outcome) => outcome === "PASS" ? CheckCircle2 : outcome === "BLOCKED" ? PauseCircle : outcome === "ERROR" ? CircleAlert : outcome === "INTERRUPTED" ? StopCircle : XCircle;
+  const isEmptyProject = !isPreview && !hasRuns && (overview?.tests ?? 0) === 0 && (overview?.modules ?? 0) === 0;
+  if (isEmptyProject) return (
+    <div className="overview-screen">
+      <section className="overview-hero" aria-labelledby="overview-title"><div><div className="eyebrow-row"><span>{project.name}</span><span aria-hidden="true" className="eyebrow-divider" /><span>{project.environmentName}</span></div><h1 id="overview-title">Good morning, Himani</h1><p>What should Veyra validate today?</p></div><Button onClick={onManageProject} variant="secondary">Project settings</Button></section>
+      <section className="overview-empty"><span className="eyebrow">Project ready</span><h2>Teach your first workflow</h2><p>Show Veyra a real task in {project.environmentName}. It will turn your demonstration into a readable test.</p><Button icon={MonitorPlay} onClick={() => onNavigate("teach")} variant="high-energy">Teach first workflow</Button></section>
+    </div>
+  );
   return (
     <div className="overview-screen">
       <section className="overview-hero" aria-labelledby="overview-title">
         <div>
           <div className="eyebrow-row">
-            <span>Commerce Storefront</span>
+            <span>{project.name}</span>
             <span aria-hidden="true" className="eyebrow-divider" />
-            <span>Staging</span>
+            <span>{project.environmentName}</span>
           </div>
           <h1 id="overview-title">Good morning, Himani</h1>
           <p>What should Veyra validate today?</p>
         </div>
         <div className="overview-hero__actions">
+          <Button onClick={onManageProject} variant="secondary">Project settings</Button>
           <Button
             icon={MonitorPlay}
             onClick={() => onNavigate("teach")}
@@ -53,7 +77,7 @@ export function OverviewScreen({ onNavigate }) {
       </section>
 
       <section aria-label="Project metrics" className="metric-grid">
-        {metrics.map(([value, label]) => (
+        {projectMetrics.map(([value, label]) => (
           <article className="metric-card" key={label}>
             <strong>{value}</strong>
             <span>{label}</span>
@@ -65,13 +89,11 @@ export function OverviewScreen({ onNavigate }) {
         <div className="overview-grid__primary">
           <article className="panel last-run-panel">
             <div className="panel-heading">
-              <h2>Last run — Nightly regression</h2>
-              <span>14 min ago · 6 min 22 sec</span>
-              <button className="text-link" onClick={() => onNavigate("runs")} type="button">
-                Open run
-              </button>
+              <h2>{hasRuns ? "Latest project run" : "No runs yet"}</h2>
+              <span>{hasRuns ? `${overview.latestOutcome} · ${overview.recentRuns} recent runs` : "Teach or run a test to create history"}</span>
+              {hasRuns ? <button className="text-link" onClick={() => onNavigate("runs")} type="button">Open run</button> : null}
             </div>
-            <div
+            {hasRuns && isPreview ? <><div
               aria-label="12 passed, 1 failed, 1 blocked"
               aria-valuemax="14"
               aria-valuemin="0"
@@ -96,7 +118,7 @@ export function OverviewScreen({ onNavigate }) {
                 <PauseCircle aria-hidden="true" size={17} strokeWidth={1.9} />
                 <strong>1 blocked</strong>
               </span>
-            </div>
+            </div></> : hasRuns ? <div className="persisted-run-summary"><div aria-label={`Latest run distribution: 1 ${latestRun.outcome}`} className="run-distribution" role="img"><span className={`run-distribution__persisted run-distribution__persisted--${latestRun.outcome.toLowerCase()}`} /></div><div aria-label={`Latest run ${latestRun.id}: ${latestRun.outcome}`} className="persisted-latest-run"><strong>{latestRun.id}</strong><span>{new Date(latestRun.completedAt).toLocaleString()} · Duration not recorded</span><span className={`run-count run-count--${latestRun.outcome.toLowerCase()}`}>{latestRun.outcome} — 1</span></div><p className="panel-description">Recent outcomes: {Object.entries(overview.outcomeCounts ?? {}).map(([outcome, count]) => `${count} ${outcome}`).join(" · ")}.</p>{overview.recentRunItems?.slice(0, 3).map((run) => { const StatusIcon = statusIcon(run.outcome); return <button className="text-link" key={run.id} onClick={() => onNavigate("runs")} type="button"><StatusIcon aria-hidden="true" size={15} />{run.outcome} — {run.id} — {new Date(run.completedAt).toLocaleString()}</button>; })}</div> : <Button icon={Play} onClick={() => onNavigate("runs")} variant="primary">Run a test</Button>}
           </article>
 
           <article className="panel attention-panel">
@@ -106,11 +128,8 @@ export function OverviewScreen({ onNavigate }) {
                 All results
               </button>
             </div>
-            <p className="panel-description">
-              Two items from the last run. One is an application failure, one is an
-              automation blockage.
-            </p>
-            <div className="attention-list">
+            <p className="panel-description">{isPreview ? "Two items from the last run. One is an application failure, one is an automation blockage." : attentionRuns.length ? `${attentionRuns.length} recent persisted run${attentionRuns.length === 1 ? " needs" : "s need"} review.` : "No persisted failures or blockages need attention."}</p>
+            {isPreview ? <div className="attention-list">
               <button
                 aria-label="FAIL — Checkout — Order confirmation missing. The order was not created. POST /orders returned 500. Product: Watch. 14 min ago."
                 className="attention-item attention-item--fail"
@@ -144,7 +163,7 @@ export function OverviewScreen({ onNavigate }) {
                 </span>
                 <time dateTime="PT14M">14 min ago</time>
               </button>
-            </div>
+            </div> : <div className="attention-list">{attentionRuns.slice(0, 3).map((run) => { const StatusIcon = run.outcome === "BLOCKED" ? PauseCircle : XCircle; return <button aria-label={`${run.outcome} — run ${run.id}`} className={run.outcome === "FAIL" ? "attention-item attention-item--fail" : "attention-item"} key={run.id} onClick={() => onNavigate("runs")} type="button"><StatusIcon aria-hidden="true" className="attention-state-icon" size={18} /><span className="attention-item__copy"><span className="attention-item__title-row"><span className="attention-item__title">Run {run.id}</span><span className="attention-item__status">{run.outcome}</span></span><span>{new Date(run.completedAt).toLocaleString()}</span></span></button>; })}</div>}
           </article>
         </div>
 
@@ -153,10 +172,10 @@ export function OverviewScreen({ onNavigate }) {
             <div className="panel-heading panel-heading--simple">
               <h2>Reusable modules</h2>
               <button className="text-link" onClick={() => onNavigate("modules")} type="button">
-                All 7
+                All {overview?.modules ?? 0}
               </button>
             </div>
-            <div className="module-list">
+            {isPreview ? <div className="module-list">
               {modules.map(({ Icon, name, usage }) => (
                 <button
                   aria-label={`${name}. ${usage}. Open module.`}
@@ -173,20 +192,20 @@ export function OverviewScreen({ onNavigate }) {
                   <ChevronRight aria-hidden="true" size={15} strokeWidth={2} />
                 </button>
               ))}
-            </div>
+            </div> : overview?.moduleItems?.length ? <div className="module-list">{overview.moduleItems.map((module) => <button aria-label={`${module.name}. Open module.`} className="module-row" key={module.id} onClick={() => onNavigate("modules")} type="button"><Search aria-hidden="true" size={16} /><span><strong>{module.name}</strong><small>{module.id}</small></span><ChevronRight aria-hidden="true" size={15} /></button>)}</div> : <p className="panel-description">No reusable modules yet. Teach a workflow to begin building shared behavior.</p>}
           </article>
 
           <article className="panel setup-panel">
             <div className="panel-heading panel-heading--simple">
-              <h2>Set-up progress</h2>
-              <span>3 of 5</span>
+              <h2>{isPreview ? "Set-up progress" : "Project ready"}</h2>
+              <span>{isPreview ? "3 of 5" : project.environmentName}</span>
             </div>
             <div
-              aria-label="3 of 5 setup steps complete"
-              aria-valuemax="5"
+              aria-label={isPreview ? "3 of 5 setup steps complete" : "Project environment configured"}
+              aria-valuemax={isPreview ? "5" : "1"}
               aria-valuemin="0"
-              aria-valuenow="3"
-              className="setup-progress"
+              aria-valuenow={isPreview ? "3" : "1"}
+              className={isPreview ? "setup-progress" : "setup-progress setup-progress--complete"}
               role="progressbar"
             >
               <span />
@@ -194,12 +213,12 @@ export function OverviewScreen({ onNavigate }) {
             <div className="setup-next">
               <Database aria-hidden="true" size={17} strokeWidth={1.8} />
               <span>
-                <strong>Next: add a dataset to Complete checkout</strong>
-                <small>Run the same flow with Laptop, Watch and Backpack.</small>
+                <strong>{isPreview ? "Next: add a dataset to Complete checkout" : "Next: teach your first workflow"}</strong>
+                <small>{isPreview ? "Run the same flow with Laptop, Watch and Backpack." : `Veyra will use the ${project.environmentName} environment.`}</small>
               </span>
             </div>
             <Button onClick={() => onNavigate("data")}>
-              Add dataset
+              {isPreview ? "Add dataset" : "Open data"}
             </Button>
           </article>
         </div>

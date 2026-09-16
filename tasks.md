@@ -17,15 +17,6 @@ No task is currently approved and queued.
 
 ### M02 — Projects, Environments & Secrets
 
-#### E03 — Projects & Environments
-
-- [ ] E03.T01 — Create a project with required identity and defaults (`P0`; `FR03.01`).
-- [ ] E03.T02 — Edit project metadata safely (`P0`; `FR03.02`).
-- [ ] E03.T03 — Create and select named project environments (`P0`; `FR03.03`).
-- [ ] E03.T04 — Manage environment-scoped variables (`P0`; `FR03.04`).
-- [ ] E03.T05 — Build the project overview and health summary (`P0`; `FR03.05`; `SCR-OVERVIEW`).
-- [ ] E03.T06 — Archive and intentionally delete projects (`P1`; `FR03.06`).
-
 #### E04 — Secrets & Sensitive Data (M02/M14)
 
 - [ ] E04.T01 — Create named secret references without exposing values (`P0`; `FR04.01`).
@@ -439,6 +430,13 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] D09 — Closed the E03 fixed-diff design/spec review: truthful persisted Overview details, first-project/loading/error states, status icon-labels, modal focus containment and mutation busy states (`FR03.01`–`FR03.06`; `SCR-OVERVIEW`; `design_specification.md`).
+- [x] E03.T01 — Created projects with required identity and a default active environment (`P0`; `FR03.01`).
+- [x] E03.T02 — Added safe project name and application URL editing (`P0`; `FR03.02`).
+- [x] E03.T03 — Added named multi-environment creation and active-environment selection (`P0`; `FR03.03`).
+- [x] E03.T04 — Added environment-scoped non-secret variable management and portable backup (`P0`; `FR03.04`).
+- [x] E03.T05 — Connected the project switcher and Overview to persisted tests, modules, recent outcomes, last-run and seven-day health data, including empty/loading/error states (`P0`; `FR03.05`; `SCR-OVERVIEW`).
+- [x] E03.T06 — Added two-step archive and exact-name permanent deletion (`P1`; `FR03.06`).
 - [x] D08 — Corrected icon-to-label spacing in the Data screen Restore project, Refresh, Export and Clean Evidence actions (`DEC-21`; `design_specification.md`; `design-qa.md`).
 - [x] D07 — Simplified E02 testing to one repository-root command with visible root-level test artifacts and plain-language output (`FR02.01`–`FR02.07`; `commands.md`).
 - [x] E02.T01 — Persisted structured project data locally in versioned SQLite storage (`P0`; `FR02.01`).

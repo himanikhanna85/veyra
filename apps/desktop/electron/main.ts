@@ -106,10 +106,12 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
     smoke.lifecyclePhase === "ready" &&
     JSON.stringify(smoke.apiKeys) ===
       JSON.stringify([
+        "applyProjectCommand",
         "cleanProjectEvidence",
         "exportProjectBackup",
         "getAppInfo",
         "getLifecycleSnapshot",
+        "getProjectWorkspace",
         "getStorageOverview",
         "onLifecycleChanged",
         "restoreProjectBackup",
@@ -143,6 +145,17 @@ async function startApplication(): Promise<void> {
   });
   await lifecycle.start();
   projectStore = new ProjectStore(join(app.getPath("userData"), "projects"));
+
+  const getProjectWorkspace = (requestedProjectId?: string) => {
+    if (!projectStore) throw new Error("Project storage is not ready");
+    const projects = projectStore.listProjectSummaries();
+    const projectId = requestedProjectId && projects.some((project) => project.id === requestedProjectId) ? requestedProjectId : projects[0]?.id;
+    return {
+      projects,
+      activeProject: projectId ? projectStore.getProjectDetail(projectId) ?? null : null,
+      overview: projectId ? projectStore.getProjectOverview(projectId) : null,
+    };
+  };
 
   disposeIpc = registerDesktopIpc({
     getAppInfo: () => ({
@@ -196,6 +209,26 @@ async function startApplication(): Promise<void> {
       if (result.canceled || !filePath) return { canceled: true } as const;
       const project = await projectStore.restoreProject(filePath);
       return { canceled: false, fileName: basename(filePath), projectId: project.id } as const;
+    },
+    getProjectWorkspace,
+    applyProjectCommand: async (command) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      switch (command.type) {
+        case "create": {
+          const project = projectStore.createProject({ id: randomUUID(), name: command.name, applicationUrl: command.applicationUrl, environmentName: command.environmentName });
+          return { projectId: project.id };
+        }
+        case "update": projectStore.updateProject(command.projectId, { name: command.name, applicationUrl: command.applicationUrl }); return { projectId: command.projectId };
+        case "save-environment": {
+          const environment = projectStore.saveEnvironment(command.projectId, { id: command.environment.id ?? randomUUID(), name: command.environment.name, baseUrl: command.environment.baseUrl });
+          return { projectId: command.projectId, environmentId: environment.id };
+        }
+        case "activate-environment": projectStore.setActiveEnvironment(command.projectId, command.environmentId); return { projectId: command.projectId };
+        case "save-variable": projectStore.saveEnvironmentVariable(command.projectId, command.environmentId, { key: command.key, value: command.value }); return { projectId: command.projectId };
+        case "delete-variable": projectStore.deleteEnvironmentVariable(command.projectId, command.environmentId, command.key); return { projectId: command.projectId };
+        case "archive": projectStore.setProjectArchived(command.projectId, command.archived); return { projectId: command.archived ? null : command.projectId };
+        case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
+      }
     },
     ipcMain,
     isTrustedSender: (candidateUrl) =>

@@ -62,6 +62,10 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm test
 ```
 
+E03 project, environment, overview and lifecycle checks are part of this
+desktop suite. Product acceptance is performed directly in the desktop app;
+no separate stakeholder-facing terminal demo is required.
+
 Run the complete E02 quick test from the repository root:
 
 ```bash
