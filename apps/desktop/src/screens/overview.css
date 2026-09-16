@@ -117,7 +117,8 @@
 .last-run-panel,
 .attention-panel,
 .modules-panel,
-.setup-panel {
+.setup-panel,
+.browser-panel {
   padding: 20px 22px;
 }
 
@@ -438,6 +439,58 @@
   line-height: normal;
 }
 
+.browser-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.browser-panel .panel-heading {
+  margin-bottom: 0;
+}
+
+.browser-session {
+  display: grid;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-app);
+}
+
+.browser-session span {
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.browser-session small,
+.browser-panel__error {
+  color: var(--color-text-secondary);
+  font-size: 12.5px;
+}
+
+.browser-panel__error {
+  margin: 0;
+  color: var(--color-fail);
+}
+
+.browser-panel__actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+}
+
+.browser-panel__actions .button {
+  min-height: 0;
+  padding: 10px 14px;
+  border-radius: 11px;
+  font-size: 13.5px;
+  line-height: normal;
+}
+
 @media (max-width: 1439px) {
   .overview-screen {
     gap: 16px;
@@ -453,7 +506,8 @@
   .last-run-panel,
   .attention-panel,
   .modules-panel,
-  .setup-panel {
+  .setup-panel,
+  .browser-panel {
     padding: 16px 18px;
   }
 

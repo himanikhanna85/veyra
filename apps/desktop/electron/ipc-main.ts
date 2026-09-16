@@ -1,4 +1,4 @@
-import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StorageOverview } from "./ipc-contract";
+import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type ControlledBrowserSessionDto, type ControlledBrowserStartCommand, type ControlledBrowserStopResultDto, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StorageOverview } from "./ipc-contract";
 
 export interface IpcMainEventLike {
   senderFrame?: {
@@ -23,6 +23,9 @@ interface DesktopIpcDependencies {
   restoreProjectBackup(): BackupDialogResult | Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): ProjectWorkspace | Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): ProjectCommandResult | Promise<ProjectCommandResult>;
+  startControlledBrowser(command: ControlledBrowserStartCommand): ControlledBrowserSessionDto | Promise<ControlledBrowserSessionDto>;
+  getControlledBrowserSession(): ControlledBrowserSessionDto | null | Promise<ControlledBrowserSessionDto | null>;
+  stopControlledBrowser(): ControlledBrowserStopResultDto | Promise<ControlledBrowserStopResultDto>;
   setSensitiveEntry(active: boolean): void | Promise<void>;
   ipcMain: IpcMainLike;
   isTrustedSender(url: string): boolean;
@@ -37,6 +40,9 @@ export function registerDesktopIpc({
   restoreProjectBackup,
   getProjectWorkspace,
   applyProjectCommand,
+  startControlledBrowser,
+  getControlledBrowserSession,
+  stopControlledBrowser,
   setSensitiveEntry,
   ipcMain,
   isTrustedSender,
@@ -98,6 +104,14 @@ export function registerDesktopIpc({
       default: throw new Error("Invalid project command");
     }
   };
+  const validateControlledBrowserStart = (payload: unknown): ControlledBrowserStartCommand => {
+    if (!payload || typeof payload !== "object") throw new Error("Invalid controlled browser command");
+    const value = payload as Record<string, unknown>;
+    return {
+      projectId: validateProjectId(value.projectId),
+      environmentId: value.environmentId == null ? undefined : validateProjectId(value.environmentId),
+    };
+  };
   ipcMain.handle(IPC_CHANNELS.cleanProjectEvidence, trustedMutation((payload) => {
     const value = payload as Record<string, unknown> | null;
     const projectId = validateProjectId(value?.projectId);
@@ -119,6 +133,12 @@ export function registerDesktopIpc({
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return applyProjectCommand(validateProjectCommand(payload));
   });
+  ipcMain.handle(IPC_CHANNELS.startControlledBrowser, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    return startControlledBrowser(validateControlledBrowserStart(payload));
+  });
+  ipcMain.handle(IPC_CHANNELS.getControlledBrowserSession, trustedHandler(getControlledBrowserSession));
+  ipcMain.handle(IPC_CHANNELS.stopControlledBrowser, trustedHandler(stopControlledBrowser));
   ipcMain.handle(IPC_CHANNELS.setSensitiveEntry, async (event, payload) => {
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     const active = (payload as Record<string, unknown> | null)?.active;
@@ -135,6 +155,9 @@ export function registerDesktopIpc({
     ipcMain.removeHandler(IPC_CHANNELS.restoreProjectBackup);
     ipcMain.removeHandler(IPC_CHANNELS.getProjectWorkspace);
     ipcMain.removeHandler(IPC_CHANNELS.applyProjectCommand);
+    ipcMain.removeHandler(IPC_CHANNELS.startControlledBrowser);
+    ipcMain.removeHandler(IPC_CHANNELS.getControlledBrowserSession);
+    ipcMain.removeHandler(IPC_CHANNELS.stopControlledBrowser);
     ipcMain.removeHandler(IPC_CHANNELS.setSensitiveEntry);
   };
 }

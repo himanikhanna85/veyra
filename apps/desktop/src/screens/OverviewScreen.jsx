@@ -27,7 +27,7 @@ const modules = [
   { Icon: LogIn, name: "Login", usage: "Used by 14 tests" },
 ];
 
-export function OverviewScreen({ error, loading, onCreateProject, onDiagnostics, onManageProject, onNavigate, onRetry, overview, project }) {
+export function OverviewScreen({ browserBusy, browserError, browserSession, error, loading, onCreateProject, onDiagnostics, onManageProject, onNavigate, onRetry, onStartControlledBrowser, onStopControlledBrowser, overview, project }) {
   if (loading) return <div className="overview-screen" aria-label="Loading project overview"><div className="overview-skeleton overview-skeleton--hero" /><div className="metric-grid">{[1, 2, 3, 4].map((item) => <div className="overview-skeleton overview-skeleton--metric" key={item} />)}</div></div>;
   if (error) return <div className="overview-screen"><section className="overview-empty"><span className="eyebrow">Workspace unavailable</span><h1>Veyra could not load your projects</h1><p>{error}</p><div className="overview-empty__actions"><Button onClick={onRetry} variant="primary">Retry</Button><button className="text-link" onClick={onDiagnostics} type="button">Open diagnostics</button></div></section></div>;
   if (!project) return <div className="overview-screen"><section className="overview-empty"><span className="eyebrow">Your first workspace</span><h1>Create a project to begin</h1><p>Give Veyra an application URL and environment, then teach your first workflow.</p><Button onClick={onCreateProject} variant="high-energy">Create project</Button></section></div>;
@@ -47,6 +47,7 @@ export function OverviewScreen({ error, loading, onCreateProject, onDiagnostics,
     <div className="overview-screen">
       <section className="overview-hero" aria-labelledby="overview-title"><div><div className="eyebrow-row"><span>{project.name}</span><span aria-hidden="true" className="eyebrow-divider" /><span>{project.environmentName}</span></div><h1 id="overview-title">Good morning, Himani</h1><p>What should Veyra validate today?</p></div><Button onClick={onManageProject} variant="secondary">Project settings</Button></section>
       <section className="overview-empty"><span className="eyebrow">Project ready</span><h2>Teach your first workflow</h2><p>Show Veyra a real task in {project.environmentName}. It will turn your demonstration into a readable test.</p><Button icon={MonitorPlay} onClick={() => onNavigate("teach")} variant="high-energy">Teach first workflow</Button></section>
+      <ControlledBrowserPanel browserBusy={browserBusy} browserError={browserError} browserSession={browserSession} onStartControlledBrowser={onStartControlledBrowser} onStopControlledBrowser={onStopControlledBrowser} project={project} />
     </div>
   );
   return (
@@ -221,8 +222,39 @@ export function OverviewScreen({ error, loading, onCreateProject, onDiagnostics,
               {isPreview ? "Add dataset" : "Open data"}
             </Button>
           </article>
+
+          <ControlledBrowserPanel browserBusy={browserBusy} browserError={browserError} browserSession={browserSession} onStartControlledBrowser={onStartControlledBrowser} onStopControlledBrowser={onStopControlledBrowser} project={project} />
         </div>
       </section>
     </div>
+  );
+}
+
+function ControlledBrowserPanel({ browserBusy, browserError, browserSession, onStartControlledBrowser, onStopControlledBrowser, project }) {
+  return (
+    <article className="panel browser-panel">
+      <div className="panel-heading panel-heading--simple">
+        <h2>Controlled browser</h2>
+        <span>{browserSession ? "Running" : "Ready"}</span>
+      </div>
+      <p className="panel-description">
+        {browserSession ? `${browserSession.browserEngine} ${browserSession.browserVersion} · ${browserSession.environmentName}` : `Open ${project.environmentName} in a Veyra-controlled Chromium window.`}
+      </p>
+      {browserError ? <p className="browser-panel__error" role="alert">{browserError}</p> : null}
+      {browserSession ? (
+        <div className="browser-session" aria-label="Controlled browser session metadata">
+          <span>{browserSession.url}</span>
+          <small>Started {new Date(browserSession.launchedAt).toLocaleTimeString()}</small>
+        </div>
+      ) : null}
+      <div className="browser-panel__actions">
+        <Button disabled={browserBusy || Boolean(browserSession)} icon={MonitorPlay} onClick={onStartControlledBrowser} variant="primary">
+          {browserBusy && !browserSession ? "Starting..." : "Start browser"}
+        </Button>
+        <Button disabled={browserBusy || !browserSession} icon={StopCircle} onClick={onStopControlledBrowser} variant="secondary">
+          Stop
+        </Button>
+      </div>
+    </article>
   );
 }

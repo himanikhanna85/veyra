@@ -224,4 +224,41 @@ describe("Veyra desktop foundation", () => {
     await user.click(within(confirmation).getByRole("button", { name: "Delete project permanently" }));
     await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "delete", projectId: "shop", confirmationName: "Shop QA" }));
   });
+
+  it("starts and stops the controlled browser for the active project", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const startControlledBrowser = vi.fn().mockResolvedValue({
+      browserEngine: "chromium",
+      browserVersion: "140.0.0.0",
+      environmentName: "Staging",
+      launchedAt: "2026-09-16T08:00:00.000Z",
+      projectId: "shop",
+      projectName: "Shop QA",
+      sessionId: "session-1",
+      status: "running",
+      url: "https://shop.test",
+    });
+    const stopControlledBrowser = vi.fn().mockResolvedValue({ sessionId: "session-1", status: "stopped" });
+    window.veyraDesktop = {
+      getControlledBrowserSession: vi.fn().mockResolvedValue(null),
+      getProjectWorkspace: vi.fn().mockResolvedValue(workspace),
+      startControlledBrowser,
+      stopControlledBrowser,
+    };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Start browser" }));
+
+    await waitFor(() => expect(startControlledBrowser).toHaveBeenCalledWith({ projectId: "shop" }));
+    expect(await screen.findByText("chromium 140.0.0.0 · Staging")).toBeVisible();
+    expect(screen.getByText("https://shop.test")).toBeVisible();
+
+    await user.click(screen.getByRole("button", { name: "Stop" }));
+
+    await waitFor(() => expect(stopControlledBrowser).toHaveBeenCalled());
+    expect(screen.getByText("Open Staging in a Veyra-controlled Chromium window.")).toBeVisible();
+  });
 });

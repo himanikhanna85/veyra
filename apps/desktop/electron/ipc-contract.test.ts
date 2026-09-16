@@ -30,6 +30,9 @@ describe("Veyra desktop preload interface", () => {
       "restoreProjectBackup",
       "getProjectWorkspace",
       "applyProjectCommand",
+      "startControlledBrowser",
+      "getControlledBrowserSession",
+      "stopControlledBrowser",
       "setSensitiveEntry",
       "onLifecycleChanged",
     ]);
@@ -42,6 +45,9 @@ describe("Veyra desktop preload interface", () => {
     await api.restoreProjectBackup();
     await api.getProjectWorkspace("project-1");
     await api.applyProjectCommand({ type: "archive", projectId: "project-1", archived: true });
+    await api.startControlledBrowser({ projectId: "project-1", environmentId: "staging" });
+    await api.getControlledBrowserSession();
+    await api.stopControlledBrowser();
     await api.setSensitiveEntry(true);
     expect(invoke.mock.calls).toEqual([
       [IPC_CHANNELS.getAppInfo],
@@ -52,6 +58,9 @@ describe("Veyra desktop preload interface", () => {
       [IPC_CHANNELS.restoreProjectBackup],
       [IPC_CHANNELS.getProjectWorkspace, { projectId: "project-1" }],
       [IPC_CHANNELS.applyProjectCommand, { type: "archive", projectId: "project-1", archived: true }],
+      [IPC_CHANNELS.startControlledBrowser, { projectId: "project-1", environmentId: "staging" }],
+      [IPC_CHANNELS.getControlledBrowserSession],
+      [IPC_CHANNELS.stopControlledBrowser],
       [IPC_CHANNELS.setSensitiveEntry, { active: true }],
     ]);
 

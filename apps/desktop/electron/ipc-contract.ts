@@ -7,6 +7,9 @@ export const IPC_CHANNELS = Object.freeze({
   restoreProjectBackup: "veyra:desktop:restore-project-backup",
   getProjectWorkspace: "veyra:desktop:get-project-workspace",
   applyProjectCommand: "veyra:desktop:apply-project-command",
+  startControlledBrowser: "veyra:desktop:start-controlled-browser",
+  getControlledBrowserSession: "veyra:desktop:get-controlled-browser-session",
+  stopControlledBrowser: "veyra:desktop:stop-controlled-browser",
   setSensitiveEntry: "veyra:desktop:set-sensitive-entry",
   lifecycleChanged: "veyra:desktop:lifecycle-changed",
 } as const);
@@ -67,6 +70,9 @@ export type ProjectCommand =
   | { type: "archive"; projectId: string; archived: boolean }
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
+export interface ControlledBrowserStartCommand { environmentId?: string; projectId: string }
+export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
+export interface ControlledBrowserStopResultDto { sessionId: string | null; status: "stopped" }
 
 export interface VeyraDesktopApi {
   getAppInfo(): Promise<AppInfo>;
@@ -77,6 +83,9 @@ export interface VeyraDesktopApi {
   restoreProjectBackup(): Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): Promise<ProjectCommandResult>;
+  startControlledBrowser(command: ControlledBrowserStartCommand): Promise<ControlledBrowserSessionDto>;
+  getControlledBrowserSession(): Promise<ControlledBrowserSessionDto | null>;
+  stopControlledBrowser(): Promise<ControlledBrowserStopResultDto>;
   setSensitiveEntry(active: boolean): Promise<void>;
   onLifecycleChanged(listener: (snapshot: LifecycleSnapshot) => void): () => void;
 }
@@ -101,6 +110,9 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     restoreProjectBackup: () => ipc.invoke(IPC_CHANNELS.restoreProjectBackup) as Promise<BackupDialogResult>,
     getProjectWorkspace: (projectId?: string) => ipc.invoke(IPC_CHANNELS.getProjectWorkspace, { projectId }) as Promise<ProjectWorkspace>,
     applyProjectCommand: (command: ProjectCommand) => ipc.invoke(IPC_CHANNELS.applyProjectCommand, command) as Promise<ProjectCommandResult>,
+    startControlledBrowser: (command: ControlledBrowserStartCommand) => ipc.invoke(IPC_CHANNELS.startControlledBrowser, command) as Promise<ControlledBrowserSessionDto>,
+    getControlledBrowserSession: () => ipc.invoke(IPC_CHANNELS.getControlledBrowserSession) as Promise<ControlledBrowserSessionDto | null>,
+    stopControlledBrowser: () => ipc.invoke(IPC_CHANNELS.stopControlledBrowser) as Promise<ControlledBrowserStopResultDto>,
     setSensitiveEntry: (active: boolean) => ipc.invoke(IPC_CHANNELS.setSensitiveEntry, { active }) as Promise<void>,
     onLifecycleChanged: (listener: (snapshot: LifecycleSnapshot) => void) => {
       const handleLifecycleChange = (_event: unknown, payload: unknown) => {

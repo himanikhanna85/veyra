@@ -632,13 +632,25 @@ retaining sensitive screenshots and attempting lossy post-capture redaction.
 
 Open configured application in Veyra-controlled Chromium.
 
+Implementation note: the first E05 slice launches the active project
+environment through an Electron-main `ControlledBrowser` module using the
+bundled Chromium runtime.
+
 ### FR05.02 --- Headed browser \[P0\]
 
 Teach/onboarding support visible browser execution.
 
+Implementation note: the controlled session opens in a separate headed
+Chromium window so testers can see and interact with the target application
+while Veyra remains in the desktop shell.
+
 ### FR05.03 --- Metadata \[P0\]
 
 Capture browser/version/environment metadata.
+
+Implementation note: renderer IPC receives only session metadata: session id,
+project, environment, URL, launch time, browser engine and parsed Chromium
+version.
 
 ### FR05.04 --- Isolation \[P0\]
 
@@ -648,6 +660,9 @@ configured.
 ### FR05.05 --- Stop \[P0\]
 
 User can terminate controlled browser execution.
+
+Implementation note: Overview exposes a Stop action, and the main process also
+stops any active controlled browser during application shutdown.
 
 ### FR05.06 --- Browser binaries \[P0\]
 

@@ -17,6 +17,9 @@ export function App() {
   const [projectDialog, setProjectDialog] = useState(null);
   const [loadingWorkspace, setLoadingWorkspace] = useState(hasWorkspaceApi);
   const [workspaceError, setWorkspaceError] = useState("");
+  const [browserSession, setBrowserSession] = useState(null);
+  const [browserError, setBrowserError] = useState("");
+  const [browserBusy, setBrowserBusy] = useState(false);
   const pageTitle = activeSection[0].toUpperCase() + activeSection.slice(1);
 
   const refreshWorkspace = useCallback(async (projectId) => {
@@ -30,10 +33,56 @@ export function App() {
 
   useEffect(() => { void refreshWorkspace(); }, [refreshWorkspace]);
 
+  useEffect(() => {
+    let active = true;
+    async function loadBrowserSession() {
+      if (typeof window.veyraDesktop?.getControlledBrowserSession !== "function") return;
+      try {
+        const session = await window.veyraDesktop.getControlledBrowserSession();
+        if (active) setBrowserSession(session);
+      } catch (reason) {
+        if (active) setBrowserError(reason instanceof Error ? reason.message : String(reason));
+      }
+    }
+    void loadBrowserSession();
+    return () => { active = false; };
+  }, []);
+
   async function applyProjectCommand(command) {
     if (typeof window.veyraDesktop?.applyProjectCommand !== "function") throw new Error("Project changes are available in the desktop app.");
     const result = await window.veyraDesktop.applyProjectCommand(command);
     await refreshWorkspace(result.projectId ?? undefined);
+  }
+
+  async function startControlledBrowser() {
+    if (!workspace.activeProject) return;
+    if (typeof window.veyraDesktop?.startControlledBrowser !== "function") {
+      setBrowserError("Controlled browser is available in the desktop app.");
+      return;
+    }
+    setBrowserBusy(true);
+    setBrowserError("");
+    try {
+      setBrowserSession(await window.veyraDesktop.startControlledBrowser({ projectId: workspace.activeProject.id }));
+    } catch (reason) {
+      setBrowserError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBrowserBusy(false);
+    }
+  }
+
+  async function stopControlledBrowser() {
+    if (typeof window.veyraDesktop?.stopControlledBrowser !== "function") return;
+    setBrowserBusy(true);
+    setBrowserError("");
+    try {
+      await window.veyraDesktop.stopControlledBrowser();
+      setBrowserSession(null);
+    } catch (reason) {
+      setBrowserError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setBrowserBusy(false);
+    }
   }
 
   return (
@@ -48,7 +97,7 @@ export function App() {
       pageTitle={pageTitle}
     >
       {activeSection === "overview" ? (
-        <OverviewScreen error={workspaceError} loading={loadingWorkspace} onCreateProject={() => setProjectDialog("create")} onDiagnostics={() => setActiveSection("data")} onManageProject={() => setProjectDialog("manage")} onNavigate={setActiveSection} onRetry={() => void refreshWorkspace(workspace.activeProject?.id)} overview={workspace.overview} project={workspace.activeProject} />
+        <OverviewScreen browserBusy={browserBusy} browserError={browserError} browserSession={browserSession} error={workspaceError} loading={loadingWorkspace} onCreateProject={() => setProjectDialog("create")} onDiagnostics={() => setActiveSection("data")} onManageProject={() => setProjectDialog("manage")} onNavigate={setActiveSection} onRetry={() => void refreshWorkspace(workspace.activeProject?.id)} onStartControlledBrowser={() => void startControlledBrowser()} onStopControlledBrowser={() => void stopControlledBrowser()} overview={workspace.overview} project={workspace.activeProject} />
         ) : activeSection === "data" ? (
           <StorageScreen onProjectsChanged={refreshWorkspace} />
       ) : (

@@ -10,6 +10,7 @@ import {
 import { randomUUID } from "node:crypto";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { ControlledBrowser } from "./controlled-browser";
 import { FileLifecycleJournal } from "./file-lifecycle-journal";
 import { IPC_CHANNELS } from "./ipc-contract";
 import { registerDesktopIpc } from "./ipc-main";
@@ -60,6 +61,7 @@ let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
 let projectStore: ProjectStore | undefined;
 let projectSecrets: ProjectSecrets | undefined;
+let controlledBrowser: ControlledBrowser | undefined;
 
 const windowManager = new DesktopWindowManager({
   appIconPath,
@@ -70,6 +72,11 @@ const windowManager = new DesktopWindowManager({
 });
 const sensitiveEvidenceGuard = new SensitiveEvidenceGuard({
   setContentProtection: (enabled) => windowManager.currentWindow?.setContentProtection(enabled),
+});
+controlledBrowser = new ControlledBrowser({
+  createSessionId: randomUUID,
+  createWindow: (options) => new BrowserWindow(options),
+  now: () => new Date(),
 });
 
 function installRendererProtocol(): void {
@@ -118,12 +125,15 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "cleanProjectEvidence",
         "exportProjectBackup",
         "getAppInfo",
+        "getControlledBrowserSession",
         "getLifecycleSnapshot",
         "getProjectWorkspace",
         "getStorageOverview",
         "onLifecycleChanged",
         "restoreProjectBackup",
         "setSensitiveEntry",
+        "startControlledBrowser",
+        "stopControlledBrowser",
       ]);
   if (!valid) throw new Error(`Desktop smoke check failed: ${JSON.stringify(smoke)}`);
   console.log(`VEYRA_SMOKE_READY ${JSON.stringify(smoke)}`);
@@ -247,6 +257,24 @@ async function startApplication(): Promise<void> {
         case "delete": await projectSecrets!.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
       }
     },
+    startControlledBrowser: (command) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      if (!controlledBrowser) throw new Error("Controlled browser is not ready");
+      const project = projectStore.getProjectDetail(command.projectId);
+      if (!project) throw new Error("Project not found");
+      const environment = command.environmentId
+        ? project.environments.find((candidate) => candidate.id === command.environmentId)
+        : project.environments.find((candidate) => candidate.isActive);
+      if (!environment) throw new Error("Project environment not found");
+      return controlledBrowser.start({
+        environmentName: environment.name,
+        projectId: project.id,
+        projectName: project.name,
+        url: environment.baseUrl,
+      });
+    },
+    getControlledBrowserSession: () => controlledBrowser?.getSession() ?? null,
+    stopControlledBrowser: () => controlledBrowser?.stop() ?? { sessionId: null, status: "stopped" },
     setSensitiveEntry: (active) => {
       sensitiveEvidenceGuard.setSensitiveEntry(active);
     },
@@ -302,6 +330,7 @@ if (!hasSingleInstanceLock) {
   app.on("will-quit", () => {
     disposeLifecycleSubscription();
     disposeIpc();
+    controlledBrowser?.stop();
     projectStore?.close();
     if (rendererProtocolInstalled) protocol.unhandle(APP_SCHEME);
   });

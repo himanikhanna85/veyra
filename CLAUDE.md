@@ -24,7 +24,7 @@ The committed lockfile is authoritative for exact dependency versions.
 | Renderer (`src/`) | React UI, local view state, transient password-masked secret entry, calls to `window.veyraDesktop` | Node.js APIs, filesystem paths, persisted/retrieved secrets, Playwright, workers |
 | Preload (`electron/preload.ts`) | A frozen, named API assembled from the shared IPC contract | Generic `send`, `invoke`, raw Electron objects |
 | Main (`electron/`) | Windows, lifecycle, IPC authorization, app-data paths, service orchestration | Product meaning embedded in Electron handlers |
-| Workers (future E05/E13/E19) | Browser execution and heavy evidence/intelligence work | UI rendering or direct renderer access |
+| Browser/runtime workers (E05/E13/E19) | Browser execution and heavy evidence/intelligence work | UI rendering or direct renderer access |
 
 `electron/ipc-contract.ts` is the sole renderer/main contract. Every new method
 or event must be named and typed there, exposed explicitly by preload, validated
@@ -55,6 +55,20 @@ requests each operation to stop once, bounds cleanup time, persists unfinished
 operation IDs for recovery, then permits Electron to quit. An unclean previous
 session is surfaced as pending recovery on the next launch. E05/E13 workers
 must use this registry rather than adding independent quit hooks.
+
+## Controlled browser
+
+`electron/controlled-browser.ts` is the E05 browser-control module. The
+renderer may start, inspect and stop a session only through the typed preload
+methods in `electron/ipc-contract.ts`; it never opens Electron browser windows
+or receives Electron objects. The current slice uses Electron's bundled
+Chromium in a separate headed window and returns metadata only: session id,
+project, environment, URL, launch time, browser engine and Chromium version.
+
+Future Teach and Run work should call this module or deepen it, not create a
+parallel window-launch path. E05.T04 still needs project/run context isolation,
+and E05.T06 still needs explicit browser-runtime management beyond the bundled
+Chromium runtime.
 
 ## Project persistence
 
