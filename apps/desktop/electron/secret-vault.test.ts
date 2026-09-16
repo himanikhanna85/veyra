@@ -26,4 +26,25 @@ describe("SecretVault", () => {
     expect(await readFile(join(root, "secrets.v1.json"), "utf8")).not.toContain("correct horse battery staple");
     expect(Object.keys(vault.status("shop", "shop_password"))).not.toContain("value");
   });
+
+  it("removes values with their reference or project and survives restart", async () => {
+    const root = await mkdtemp(join(tmpdir(), "veyra-secret-vault-")); roots.push(root);
+    const vault = new SecretVault(root, cipher);
+    vault.set("shop", "shop_password", "first");
+    vault.set("shop", "api_token", "second");
+
+    expect(new SecretVault(root, cipher).configuredIds("shop")).toEqual(["api_token", "shop_password"]);
+    vault.delete("shop", "api_token");
+    expect(vault.status("shop", "api_token").configured).toBe(false);
+    vault.deleteProject("shop");
+    expect(vault.configuredIds("shop")).toEqual([]);
+  });
+
+  it("fails closed when the operating-system secure backend is unavailable", async () => {
+    const root = await mkdtemp(join(tmpdir(), "veyra-secret-vault-")); roots.push(root);
+    const vault = new SecretVault(root, { ...cipher, backend: "unavailable", isAvailable: () => false });
+
+    expect(() => vault.set("shop", "api_token", "plaintext")).toThrow(/unavailable/i);
+    await expect(readFile(join(root, "secrets.v1.json"), "utf8")).rejects.toThrow();
+  });
 });

@@ -154,12 +154,18 @@ shell and standard components; it may not introduce a second visual language.
   named environments, and environment-scoped non-secret key/value rows.
 - Project Settings includes a separate **Secret references** section below
   environment variables. A reference has a logical identifier and optional
-  description, never a plaintext value in E04.T01. Each row shows a lock icon,
-  identifier, description and the neutral status **Value not configured**.
+  description. Each row shows a lock icon, identifier, description and either
+  **Value not configured** or **Configured**; it never displays, copies or
+  reveals the stored value.
   Creation accepts identifiers matching `letter + letters/numbers/underscore`
-  and explains that OS-secured value entry arrives in the next secret-storage
-  slice. Deletion removes only reference metadata and uses an explicit labelled
-  control with a 40 px hit area.
+  and provides a password-masked value field with **Save value** or **Replace**.
+  Values are sent directly to the main-process OS-secure-store adapter, cleared
+  from renderer state after the operation and excluded from project exports.
+  **Clear value** removes the secured value but retains the logical reference;
+  deleting the reference removes both. Secret-entry focus activates operating-
+  system window capture protection, and Veyra evidence capture remains paused
+  until focus leaves the sensitive field. Reference deletion uses an explicit
+  labelled control with a 40 px hit area.
 - Switching environment immediately updates the sidebar/header context. Project
   overview values always come from the selected project's persisted records.
 - Archive requires a second click labelled **Confirm archive**. Permanent

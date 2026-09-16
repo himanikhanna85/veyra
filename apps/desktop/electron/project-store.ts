@@ -1,8 +1,9 @@
 import { createHash, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, rmSync } from "node:fs";
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { collectSecretReferenceIds } from "./secret-protection";
 
 const SCHEMA_VERSION = 3;
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
@@ -18,7 +19,7 @@ export interface ProjectRecord {
 
 export interface EnvironmentVariable { key: string; value: string }
 export interface ProjectEnvironment { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariable[] }
-export interface SecretReference { description: string; hasValue: false; id: string }
+export interface SecretReference { description: string; hasValue: boolean; id: string }
 export interface ProjectDetail extends ProjectRecord { archived: boolean; environments: ProjectEnvironment[]; secretReferences: SecretReference[] }
 export interface ProjectSummary { archived: boolean; environmentName: string; id: string; name: string }
 export interface ProjectOverview {
@@ -167,12 +168,15 @@ export class ProjectStore {
   readonly #evidenceRoot: string;
   #database!: DatabaseSync;
   #closed = false;
+  readonly #assertEvidenceCaptureAllowed: () => void;
 
-  constructor(root: string) {
+  constructor(root: string, options: { assertEvidenceCaptureAllowed?: () => void } = {}) {
     mkdirSync(root, { recursive: true, mode: 0o700 });
     this.#databasePath = join(root, "veyra.sqlite");
     this.#evidenceRoot = join(root, "evidence");
+    this.#assertEvidenceCaptureAllowed = options.assertEvidenceCaptureAllowed ?? (() => undefined);
     mkdirSync(this.#evidenceRoot, { recursive: true, mode: 0o700 });
+    try { rmSync(join(this.#evidenceRoot, ".trash"), { recursive: true, force: true }); } catch { /* retry cleanup on the next startup or deletion */ }
     try {
       this.#database = new DatabaseSync(this.#databasePath);
       this.#database.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
@@ -305,8 +309,16 @@ export class ProjectStore {
   }
 
   deleteSecretReference(projectId: string, id: string): void {
-    if (!SECRET_REFERENCE_ID.test(id)) throw new Error("Secret identifier is invalid");
+    this.assertSecretReferenceDeletable(projectId, id);
     this.#database.prepare("DELETE FROM secret_references WHERE project_id=? AND id=?").run(projectId, id);
+  }
+
+  assertSecretReferenceDeletable(projectId: string, id: string): void {
+    if (!SECRET_REFERENCE_ID.test(id)) throw new Error("Secret identifier is invalid");
+    const dependents = (this.#database.prepare("SELECT kind,id,payload_json FROM definitions WHERE project_id=? ORDER BY kind,id").all(projectId) as Record<string, unknown>[])
+      .filter((definition) => collectSecretReferenceIds(JSON.parse(String(definition.payload_json))).includes(id))
+      .map((definition) => `${String(definition.kind)} ${String(definition.id)}`);
+    if (dependents.length) throw new Error(`Secret reference ${id} is used by ${dependents.join(", ")}; remove those bindings before deleting it`);
   }
 
   setProjectArchived(id: string, archived: boolean): ProjectDetail {
@@ -318,8 +330,20 @@ export class ProjectStore {
   async deleteProject(id: string, confirmationName: string): Promise<void> {
     const project = this.getProject(id); if (!project) throw new Error("Project not found");
     if (confirmationName !== project.name) throw new Error("Enter the exact project name to delete it");
-    this.#database.prepare("DELETE FROM projects WHERE id=?").run(id);
-    await rm(join(this.#evidenceRoot, id), { recursive: true, force: true });
+    const evidencePath = join(this.#evidenceRoot, id);
+    const trashRoot = join(this.#evidenceRoot, ".trash");
+    const trashPath = join(trashRoot, `${id}-${randomUUID()}`);
+    mkdirSync(trashRoot, { recursive: true, mode: 0o700 });
+    let evidenceMoved = false;
+    try { await rename(evidencePath, trashPath); evidenceMoved = true; }
+    catch (error) { if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error; }
+    try {
+      this.#database.prepare("DELETE FROM projects WHERE id=?").run(id);
+    } catch (error) {
+      if (evidenceMoved) await rename(trashPath, evidencePath);
+      throw error;
+    }
+    if (evidenceMoved) await rm(trashPath, { recursive: true, force: true }).catch(() => undefined);
   }
 
   getProjectOverview(projectId: string): ProjectOverview {
@@ -364,6 +388,9 @@ export class ProjectStore {
 
   saveDefinition(projectId: string, kind: string, id: string, revision: number, payload: unknown): void {
     assertSafeId(projectId, "Project id"); assertSafeId(kind, "Definition kind"); assertSafeId(id, "Definition id");
+    for (const secretId of collectSecretReferenceIds(payload)) {
+      if (!this.#database.prepare("SELECT 1 ok FROM secret_references WHERE project_id=? AND id=?").get(projectId, secretId)) throw new Error(`Secret reference ${secretId} does not exist in this project`);
+    }
     this.#database.prepare(`INSERT INTO definitions (project_id,kind,id,revision,payload_json) VALUES (?,?,?,?,?)
       ON CONFLICT(project_id,kind,id) DO UPDATE SET revision=excluded.revision,payload_json=excluded.payload_json`)
       .run(projectId, kind, id, revision, JSON.stringify(payload));
@@ -391,6 +418,7 @@ export class ProjectStore {
   }
 
   async writeEvidence(projectId: string, id: string, bytes: Uint8Array, mediaType: string, createdAt = new Date().toISOString()) {
+    this.#assertEvidenceCaptureAllowed();
     assertSafeId(projectId, "Project id"); assertSafeId(id, "Evidence id");
     assertIsoDate(createdAt, "Evidence creation date");
     if (!this.getProject(projectId)) throw new Error("Project not found");

@@ -41,6 +41,7 @@ export interface DesktopWindowLike {
   on(event: "closed", listener: () => void): void;
   once(event: "ready-to-show", listener: () => void): void;
   show(): void;
+  setContentProtection(enabled: boolean): void;
   webContents: DesktopWebContentsLike;
 }
 

@@ -14,6 +14,7 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
   const [environmentDraft, setEnvironmentDraft] = useState({ name: "", baseUrl: "https://" });
   const [variableDraft, setVariableDraft] = useState({ key: "", value: "" });
   const [secretReferenceDraft, setSecretReferenceDraft] = useState({ id: "", description: "" });
+  const [secretValueDrafts, setSecretValueDrafts] = useState({});
   const [deleteName, setDeleteName] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -27,10 +28,14 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
     setApplicationUrl(project?.applicationUrl ?? "https://");
     setEnvironmentName(project?.environmentName ?? "Staging");
     setConfirmDelete(false);
+    setSecretValueDrafts({});
     setError("");
   }, [mode, project]);
 
-  useEffect(() => () => previousFocusRef.current?.focus?.(), []);
+  useEffect(() => () => {
+    void window.veyraDesktop?.setSensitiveEntry?.(false);
+    previousFocusRef.current?.focus?.();
+  }, []);
 
   useEffect(() => {
     function handleDialogKey(event) {
@@ -78,6 +83,11 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
   async function addSecretReference() {
     const saved = await run({ type: "save-secret-reference", projectId: project.id, ...secretReferenceDraft });
     if (saved) setSecretReferenceDraft({ id: "", description: "" });
+  }
+
+  async function saveSecretValue(referenceId) {
+    const saved = await run({ type: "set-secret-value", projectId: project.id, id: referenceId, value: secretValueDrafts[referenceId] ?? "" }, false, `set-secret-${referenceId}`);
+    if (saved) setSecretValueDrafts((drafts) => ({ ...drafts, [referenceId]: "" }));
   }
 
   return (
@@ -128,9 +138,15 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
             </section>
 
             <section className="project-dialog-section">
-              <h3>Secret references</h3><p>Create logical names now. OS-secured value storage is added in the next security slice.</p>
+              <h3>Secret references</h3><p>Values are protected by your operating system and are never shown again, exported or stored in the project database.</p>
               <div className="secret-reference-list">
-                {(project.secretReferences ?? []).map((reference) => { const deleting = busyAction === `delete-secret-${reference.id}`; return <div className="secret-reference-row" key={reference.id}><LockKeyhole aria-hidden="true" size={16} /><span><code>{reference.id}</code><small>{reference.description || "No description"}</small></span><span className="secret-reference-status">Value not configured</span><button aria-busy={deleting || undefined} aria-label={deleting ? `Deleting secret reference ${reference.id}` : `Delete secret reference ${reference.id}`} aria-live="polite" disabled={busy} onClick={() => void run({ type: "delete-secret-reference", projectId: project.id, id: reference.id }, false, `delete-secret-${reference.id}`)} type="button">{deleting ? <LoaderCircle aria-hidden="true" className="button__spinner" size={14} /> : <Trash2 aria-hidden="true" size={14} />}</button></div>; })}
+                {(project.secretReferences ?? []).map((reference) => {
+                  const deleting = busyAction === `delete-secret-${reference.id}`;
+                  return <div className="secret-reference-row" key={reference.id}>
+                    <div className="secret-reference-summary"><LockKeyhole aria-hidden="true" size={16} /><span><code>{reference.id}</code><small>{reference.description || "No description"}</small></span><span className={reference.hasValue ? "secret-reference-status secret-reference-status--configured" : "secret-reference-status"}>{reference.hasValue ? "Configured" : "Value not configured"}</span><button aria-busy={deleting || undefined} aria-label={deleting ? `Deleting secret reference ${reference.id}` : `Delete secret reference ${reference.id}`} aria-live="polite" disabled={busy} onClick={() => void run({ type: "delete-secret-reference", projectId: project.id, id: reference.id }, false, `delete-secret-${reference.id}`)} type="button">{deleting ? <LoaderCircle aria-hidden="true" className="button__spinner" size={14} /> : <Trash2 aria-hidden="true" size={14} />}</button></div>
+                    <div className="secret-value-form"><label>Secret value for {reference.id}<input autoComplete="new-password" data-sensitive="true" disabled={busy} onBlur={() => void window.veyraDesktop?.setSensitiveEntry?.(false)} onChange={(event) => setSecretValueDrafts((drafts) => ({ ...drafts, [reference.id]: event.target.value }))} onFocus={() => void window.veyraDesktop?.setSensitiveEntry?.(true)} placeholder={reference.hasValue ? "Enter a replacement value" : "Enter value"} type="password" value={secretValueDrafts[reference.id] ?? ""} /></label><Button busy={busyAction === `set-secret-${reference.id}`} disabled={busy || !(secretValueDrafts[reference.id] ?? "")} onClick={() => void saveSecretValue(reference.id)} size="compact" variant="primary">{reference.hasValue ? "Replace" : "Save value"}</Button>{reference.hasValue ? <Button busy={busyAction === `clear-secret-${reference.id}`} disabled={busy} onClick={() => void run({ type: "delete-secret-value", projectId: project.id, id: reference.id }, false, `clear-secret-${reference.id}`)} size="compact">Clear value</Button> : null}</div>
+                  </div>;
+                })}
                 {(project.secretReferences ?? []).length === 0 ? <span className="empty-copy">No secret references yet.</span> : null}
               </div>
               <div className="inline-form inline-form--secret">

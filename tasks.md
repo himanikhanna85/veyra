@@ -9,12 +9,7 @@ Done = completed and verified/documented.
 
 ## Pending
 
-- [ ] E04.T02 — Store secret values in the operating-system secure store (`P0`; `FR04.02`).
-- [ ] E04.T03 — Resolve secret references only at authorized runtime boundaries (`P0`; `FR04.03`).
-- [ ] E04.T04 — Mask secret values throughout product UI (`P0`; `FR04.04`).
-- [ ] E04.T05 — Redact secrets from reports and logs (`P0`; `FR04.05`).
-- [ ] E04.T06 — Redact secrets before any AI request (`P0`; `FR04.06`).
-- [ ] E04.T07 — Protect sensitive evidence at rest and on access (`P1`; `FR04.07`).
+None.
 
 ## Not Started
 
@@ -427,6 +422,12 @@ Done = completed and verified/documented.
 
 ## Done
 
+- [x] E04.T07 — Enforced evidence-write rejection and OS window capture protection during password-masked secret entry (`P1`; `FR04.07`).
+- [x] E04.T06 — Established the production-owned AI preparation seam that never resolves references and redacts accidental known values (`P0`; `FR04.06`).
+- [x] E04.T05 — Established the production-owned raw, URL-encoded and base64 redaction seam required by structured logs and reports (`P0`; `FR04.05`).
+- [x] E04.T04 — Added status-only masked secret entry, replacement and clearing without a reveal/copy path (`P0`; `FR04.04`).
+- [x] E04.T03 — Added validated logical secret tokens and a main/worker-only authorized runtime resolver (`P0`; `FR04.03`).
+- [x] E04.T02 — Added fail-closed OS-backed encrypted secret value storage outside SQLite and backups (`P0`; `FR04.02`).
 - [x] E04.T01 — Added project-scoped named secret-reference metadata, value-free typed IPC/UI, and portable value-free backup/restore (`P0`; `FR04.01`).
 - [x] B01 — Added a final irreversible-action confirmation modal after exact-name project deletion confirmation (`FR03.06`; `design_specification.md`).
 - [x] B02 — Reactivated an archived project when its valid backup is restored into the same workspace while retaining active-duplicate protection (`FR02.06`; `FR03.06`).

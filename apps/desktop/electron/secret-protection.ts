@@ -17,6 +17,15 @@ function mapDeep(value: unknown, transform: (value: unknown) => unknown): unknow
   return value;
 }
 
+export function collectSecretReferenceIds(value: unknown): string[] {
+  const identifiers = new Set<string>();
+  mapDeep(value, (candidate) => {
+    if (isRecord(candidate) && Object.keys(candidate).length === 1 && typeof candidate.secretRef === "string") identifiers.add(candidate.secretRef);
+    return candidate;
+  });
+  return [...identifiers].sort();
+}
+
 export class SecretProtection {
   readonly #source: RuntimeSecretSource;
 

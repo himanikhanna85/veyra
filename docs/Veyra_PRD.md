@@ -560,26 +560,68 @@ with versions 1 and 2, treating their absent reference list as empty.
 
 Use OS-secure storage/keychain where practical.
 
+E04.T02 stores encrypted value blobs outside SQLite through Electron
+`safeStorage`: Keychain on macOS, DPAPI on Windows and a protected Linux
+backend. Linux `basic_text` is rejected rather than silently weakening the
+promise. The encrypted document is atomically replaced with mode `0600`, and
+reference/project deletion removes the corresponding value. Permanent project
+deletion first moves evidence into a private quarantine, then deletes metadata;
+an earlier failure restores both evidence and encrypted values, while a later
+quarantine cleanup failure cannot resurrect credentials without an owner. This
+adapter was
+chosen over database encryption because OS account protection and key lifecycle
+remain outside Veyra while project data stays portable.
+
 ### FR04.03 --- References \[P0\]
 
 Definitions reference logical secret IDs rather than plaintext.
+
+E04.T03 defines the exact portable token `{ "secretRef": "logical_id" }`.
+Definitions may be saved only when every token names a reference in the same
+project, and a referenced identifier cannot be deleted until its bindings are
+removed. Resolution is owned by the production `ProjectSecrets` main/worker
+seam and is absent from preload and renderer interfaces. This keeps definitions,
+history and backups meaningful without binding them to a device credential.
 
 ### FR04.04 --- Masking \[P0\]
 
 Mask secrets in ordinary UI.
 
+E04.T04 uses password inputs for initial/replacement entry, immediately clears
+the transient draft after storage, and returns only `Configured` or
+`Value not configured`. There is deliberately no reveal/copy endpoint: masking
+alone would still expose plaintext through the renderer model or accessibility
+tree, while status-only reads structurally prevent that path.
+
 ### FR04.05 --- Report/log redaction \[P0\]
 
 Do not intentionally expose plaintext secrets in reports/logs.
+
+E04.T05 provides the required output policy through the production-owned
+`ProjectSecrets` main/worker seam. Structured
+payloads are recursively scrubbed for known raw, URL-encoded and base64 forms
+before log/report serialization. Centralizing the policy avoids relying on each
+future reporter or logger to remember field-specific masking.
 
 ### FR04.06 --- AI redaction \[P0\]
 
 Never automatically send secrets to AI.
 
+E04.T06 gives that production seam a separate fail-safe AI path: logical references are
+replaced by non-secret markers without resolution, and any accidentally present
+known values are redacted. AI callers must use this path rather than the runtime
+resolver, so adding a model provider cannot silently broaden secret access.
+
 ### FR04.07 --- Evidence protection \[P1\]
 
 Reduce accidental screenshot/evidence exposure where Veyra controls
 secret entry.
+
+E04.T07 marks value inputs as sensitive, uses password masking, enables Electron
+window content protection while they are focused, and makes every project
+evidence write pass through a guard that rejects capture during sensitive entry. Protection ends on
+blur or dialog teardown. Preventing capture at the source was chosen over
+retaining sensitive screenshots and attempting lossy post-capture redaction.
 
 ## E05 --- Controlled Browser
 

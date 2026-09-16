@@ -28,6 +28,7 @@ function createWindowDouble(): DesktopWindowLike & {
     once: (event, listener) => listeners.set(event, listener),
     openHandler: () => windowOpenHandler?.() ?? { action: "allow" },
     show: vi.fn(),
+    setContentProtection: vi.fn(),
     webContents: {
       executeJavaScript: vi.fn(async () => undefined),
       on: (event, listener) => {

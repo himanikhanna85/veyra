@@ -21,7 +21,7 @@ The committed lockfile is authoritative for exact dependency versions.
 
 | Boundary | Owns | Must not own |
 |---|---|---|
-| Renderer (`src/`) | React UI, local view state, calls to `window.veyraDesktop` | Node.js APIs, filesystem paths, secrets, Playwright, workers |
+| Renderer (`src/`) | React UI, local view state, transient password-masked secret entry, calls to `window.veyraDesktop` | Node.js APIs, filesystem paths, persisted/retrieved secrets, Playwright, workers |
 | Preload (`electron/preload.ts`) | A frozen, named API assembled from the shared IPC contract | Generic `send`, `invoke`, raw Electron objects |
 | Main (`electron/`) | Windows, lifecycle, IPC authorization, app-data paths, service orchestration | Product meaning embedded in Electron handlers |
 | Workers (future E05/E13/E19) | Browser execution and heavy evidence/intelligence work | UI rendering or direct renderer access |
@@ -65,6 +65,29 @@ cleanup, and the checksummed `.veyra-project.json` backup format. Renderer code
 must use the named preload methods; it must never import SQLite, receive local
 filesystem paths, or access evidence directly. Restore must validate before
 commit and preserve the original database when opening or migration fails.
+
+## Secret and sensitive-output handling
+
+`electron/project-secrets.ts` is the main-process application seam for secret
+metadata, values, cleanup and authorized output/runtime policy; Electron
+handlers only dispatch to it. `electron/secret-vault.ts` is the secret-value
+persistence seam. Its Electron
+adapter uses `safeStorage` (Keychain on macOS, DPAPI on Windows and a protected
+Linux backend) and fails closed when only Linux `basic_text` is available.
+Encrypted blobs live outside SQLite with restrictive permissions. The renderer
+may submit a password-masked value but never receives one back; backups include
+logical reference metadata only.
+
+Definitions represent credentials only as exact `{ secretRef: "logical_id" }`
+tokens. `electron/secret-protection.ts` is the main/worker runtime seam that may
+resolve those tokens. Its log/report paths redact known raw, URL-encoded and
+base64 forms; its AI path replaces references without resolving them and also
+redacts accidental known values. Do not add a direct vault read to renderer,
+reporting, logging or AI code.
+
+`electron/sensitive-evidence-guard.ts` owns the secret-entry capture state.
+Password fields enable Electron content protection while focused, and the
+project evidence writer calls `assertCaptureAllowed()` before every write.
 
 ## Build outputs and platforms
 

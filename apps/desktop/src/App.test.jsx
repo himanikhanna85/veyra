@@ -153,7 +153,7 @@ describe("Veyra desktop foundation", () => {
     expect(screen.getByRole("button", { name: "Project settings" })).toHaveFocus();
   });
 
-  it("creates a named secret reference without asking for a secret value", async () => {
+  it("creates a named secret reference without exposing a secret value", async () => {
     const user = userEvent.setup();
     const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
     const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
@@ -164,12 +164,39 @@ describe("Veyra desktop foundation", () => {
     await screen.findByRole("heading", { name: "Teach your first workflow" });
     await user.click(screen.getByRole("button", { name: "Project settings" }));
     const dialog = screen.getByRole("dialog", { name: "Shop QA" });
-    expect(within(dialog).queryByLabelText(/secret value/i)).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("correct horse battery staple")).not.toBeInTheDocument();
     await user.type(within(dialog).getByLabelText("Secret identifier"), "shop_password");
     await user.type(within(dialog).getByLabelText(/Secret description/), "Test shopper password");
     await user.click(within(dialog).getByRole("button", { name: "Add secret reference" }));
 
     await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Test shopper password" }));
+  });
+
+  it("stores a masked secret value and protects the window while it is entered", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [{ id: "shop_password", description: "Shopper password", hasValue: false }] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: "shop" });
+    const setSensitiveEntry = vi.fn().mockResolvedValue(undefined);
+    const configuredWorkspace = { ...workspace, activeProject: { ...project, secretReferences: [{ ...project.secretReferences[0], hasValue: true }] } };
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValueOnce(workspace).mockResolvedValue(configuredWorkspace), applyProjectCommand, setSensitiveEntry };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    const valueInput = screen.getByLabelText("Secret value for shop_password");
+    expect(valueInput).toHaveAttribute("type", "password");
+    await user.type(valueInput, "correct horse battery staple");
+    expect(setSensitiveEntry).toHaveBeenCalledWith(true);
+    await user.click(screen.getByRole("button", { name: "Save value" }));
+
+    expect(applyProjectCommand).toHaveBeenCalledWith({ type: "set-secret-value", projectId: "shop", id: "shop_password", value: "correct horse battery staple" });
+    await waitFor(() => expect(valueInput).toHaveValue(""));
+    expect(setSensitiveEntry).toHaveBeenCalledWith(false);
+    expect(screen.queryByText("correct horse battery staple")).not.toBeInTheDocument();
+    expect(await screen.findByText("Configured")).toBeVisible();
+    await user.click(screen.getByRole("button", { name: "Clear value" }));
+    expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "delete-secret-value", projectId: "shop", id: "shop_password" });
   });
 
   it("requires a final irreversible confirmation before deleting a project", async () => {

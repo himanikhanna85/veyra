@@ -36,8 +36,8 @@ export function registerDesktopIpc({
   exportProjectBackup,
   restoreProjectBackup,
   getProjectWorkspace,
-    applyProjectCommand,
-    setSensitiveEntry,
+  applyProjectCommand,
+  setSensitiveEntry,
   ipcMain,
   isTrustedSender,
 }: DesktopIpcDependencies): () => void {
@@ -135,5 +135,6 @@ export function registerDesktopIpc({
     ipcMain.removeHandler(IPC_CHANNELS.restoreProjectBackup);
     ipcMain.removeHandler(IPC_CHANNELS.getProjectWorkspace);
     ipcMain.removeHandler(IPC_CHANNELS.applyProjectCommand);
+    ipcMain.removeHandler(IPC_CHANNELS.setSensitiveEntry);
   };
 }

@@ -30,6 +30,7 @@ describe("Veyra desktop preload interface", () => {
       "restoreProjectBackup",
       "getProjectWorkspace",
       "applyProjectCommand",
+      "setSensitiveEntry",
       "onLifecycleChanged",
     ]);
 
@@ -41,6 +42,7 @@ describe("Veyra desktop preload interface", () => {
     await api.restoreProjectBackup();
     await api.getProjectWorkspace("project-1");
     await api.applyProjectCommand({ type: "archive", projectId: "project-1", archived: true });
+    await api.setSensitiveEntry(true);
     expect(invoke.mock.calls).toEqual([
       [IPC_CHANNELS.getAppInfo],
       [IPC_CHANNELS.getLifecycleSnapshot],
@@ -50,6 +52,7 @@ describe("Veyra desktop preload interface", () => {
       [IPC_CHANNELS.restoreProjectBackup],
       [IPC_CHANNELS.getProjectWorkspace, { projectId: "project-1" }],
       [IPC_CHANNELS.applyProjectCommand, { type: "archive", projectId: "project-1", archived: true }],
+      [IPC_CHANNELS.setSensitiveEntry, { active: true }],
     ]);
 
     const listener = vi.fn();

@@ -70,6 +70,19 @@ describe("ProjectStore", () => {
     expect(store.getProjectDetail("shop")?.secretReferences).toEqual([]);
   });
 
+  it("persists only valid logical secret references in definitions", async () => {
+    const { store } = await createStore();
+    store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+    store.saveSecretReference("shop", { id: "shop_password" });
+
+    store.saveDefinition("shop", "test", "login", 1, { steps: [{ action: "fill", value: { secretRef: "shop_password" } }] });
+
+    expect(store.getDefinition("shop", "test", "login")?.payload).toEqual({ steps: [{ action: "fill", value: { secretRef: "shop_password" } }] });
+    expect(() => store.saveDefinition("shop", "test", "bad", 1, { value: { secretRef: "missing" } })).toThrow(/does not exist/i);
+    expect(() => store.deleteSecretReference("shop", "shop_password")).toThrow(/used by test login/i);
+    expect(store.getProjectDetail("shop")?.secretReferences).toHaveLength(1);
+  });
+
   it("archives projects and requires an exact project name before deletion", async () => {
     const { root, store } = await createStore();
     store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
@@ -236,6 +249,16 @@ describe("ProjectStore", () => {
   it("does not create an evidence file when metadata cannot be committed", async () => {
     const { root, store } = await createStore();
     await expect(store.writeEvidence("missing-project", "shot", new Uint8Array([1]), "image/png")).rejects.toThrow(/project not found/i);
+    await expect(readdir(join(root, "evidence"))).resolves.toEqual([]);
+  });
+
+  it("rejects evidence writes while the sensitive-entry guard is active", async () => {
+    const root = await mkdtemp(join(tmpdir(), "veyra-store-"));
+    const store = new ProjectStore(root, { assertEvidenceCaptureAllowed: () => { throw new Error("Evidence capture is paused while a secret is being entered"); } });
+    stores.push(store);
+    store.saveProject({ id: "project-1", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+
+    await expect(store.writeEvidence("project-1", "shot", new Uint8Array([1]), "image/png")).rejects.toThrow(/capture is paused/i);
     await expect(readdir(join(root, "evidence"))).resolves.toEqual([]);
   });
 

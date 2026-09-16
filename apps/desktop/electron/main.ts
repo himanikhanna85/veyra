@@ -17,6 +17,8 @@ import { DesktopLifecycle } from "./lifecycle";
 import { ProjectStore } from "./project-store";
 import { createElectronSecretCipher } from "./electron-secret-cipher";
 import { SecretVault } from "./secret-vault";
+import { SensitiveEvidenceGuard } from "./sensitive-evidence-guard";
+import { ProjectSecrets } from "./project-secrets";
 import {
   isTrustedRendererSender,
   selectRendererUrl,
@@ -57,7 +59,7 @@ let shutdownComplete = false;
 let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
 let projectStore: ProjectStore | undefined;
-let secretVault: SecretVault | undefined;
+let projectSecrets: ProjectSecrets | undefined;
 
 const windowManager = new DesktopWindowManager({
   appIconPath,
@@ -65,6 +67,9 @@ const windowManager = new DesktopWindowManager({
     new BrowserWindow(options) as unknown as DesktopWindowLike,
   preloadPath,
   rendererUrl,
+});
+const sensitiveEvidenceGuard = new SensitiveEvidenceGuard({
+  setContentProtection: (enabled) => windowManager.currentWindow?.setContentProtection(enabled),
 });
 
 function installRendererProtocol(): void {
@@ -148,8 +153,9 @@ async function startApplication(): Promise<void> {
     now: () => new Date(),
   });
   await lifecycle.start();
-  projectStore = new ProjectStore(join(app.getPath("userData"), "projects"));
-  secretVault = new SecretVault(join(app.getPath("userData"), "secrets"), createElectronSecretCipher());
+  projectStore = new ProjectStore(join(app.getPath("userData"), "projects"), { assertEvidenceCaptureAllowed: () => sensitiveEvidenceGuard.assertCaptureAllowed() });
+  const secretVault = new SecretVault(join(app.getPath("userData"), "secrets"), createElectronSecretCipher());
+  projectSecrets = new ProjectSecrets(projectStore, secretVault);
 
   const getProjectWorkspace = (requestedProjectId?: string) => {
     if (!projectStore) throw new Error("Project storage is not ready");
@@ -158,9 +164,7 @@ async function startApplication(): Promise<void> {
     return {
       projects,
       activeProject: projectId ? (() => {
-        const detail = projectStore!.getProjectDetail(projectId);
-        if (!detail) return null;
-        return { ...detail, secretReferences: detail.secretReferences.map((reference) => ({ ...reference, hasValue: secretVault?.status(projectId, reference.id).configured ?? false })) };
+        return projectSecrets!.getProjectDetail(projectId) ?? null;
       })() : null,
       overview: projectId ? projectStore.getProjectOverview(projectId) : null,
     };
@@ -235,21 +239,16 @@ async function startApplication(): Promise<void> {
         case "activate-environment": projectStore.setActiveEnvironment(command.projectId, command.environmentId); return { projectId: command.projectId };
         case "save-variable": projectStore.saveEnvironmentVariable(command.projectId, command.environmentId, { key: command.key, value: command.value }); return { projectId: command.projectId };
         case "delete-variable": projectStore.deleteEnvironmentVariable(command.projectId, command.environmentId, command.key); return { projectId: command.projectId };
-        case "save-secret-reference": projectStore.saveSecretReference(command.projectId, { id: command.id, description: command.description }); return { projectId: command.projectId };
-        case "delete-secret-reference": secretVault?.delete(command.projectId, command.id); projectStore.deleteSecretReference(command.projectId, command.id); return { projectId: command.projectId };
-        case "set-secret-value": {
-          if (!projectStore.getProjectDetail(command.projectId)?.secretReferences.some((reference) => reference.id === command.id)) throw new Error("Secret reference not found");
-          if (!secretVault) throw new Error("Secret vault is not ready");
-          secretVault.set(command.projectId, command.id, command.value);
-          return { projectId: command.projectId };
-        }
-        case "delete-secret-value": secretVault?.delete(command.projectId, command.id); return { projectId: command.projectId };
+        case "save-secret-reference": projectSecrets!.saveReference(command.projectId, { id: command.id, description: command.description }); return { projectId: command.projectId };
+        case "delete-secret-reference": projectSecrets!.deleteReference(command.projectId, command.id); return { projectId: command.projectId };
+        case "set-secret-value": projectSecrets!.setValue(command.projectId, command.id, command.value); return { projectId: command.projectId };
+        case "delete-secret-value": projectSecrets!.clearValue(command.projectId, command.id); return { projectId: command.projectId };
         case "archive": projectStore.setProjectArchived(command.projectId, command.archived); return { projectId: command.archived ? null : command.projectId };
-        case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); secretVault?.deleteProject(command.projectId); return { projectId: null };
+        case "delete": await projectSecrets!.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
       }
     },
     setSensitiveEntry: (active) => {
-      windowManager.currentWindow?.setContentProtection?.(active);
+      sensitiveEvidenceGuard.setSensitiveEntry(active);
     },
     ipcMain,
     isTrustedSender: (candidateUrl) =>
