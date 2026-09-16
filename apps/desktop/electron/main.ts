@@ -226,6 +226,8 @@ async function startApplication(): Promise<void> {
         case "activate-environment": projectStore.setActiveEnvironment(command.projectId, command.environmentId); return { projectId: command.projectId };
         case "save-variable": projectStore.saveEnvironmentVariable(command.projectId, command.environmentId, { key: command.key, value: command.value }); return { projectId: command.projectId };
         case "delete-variable": projectStore.deleteEnvironmentVariable(command.projectId, command.environmentId, command.key); return { projectId: command.projectId };
+        case "save-secret-reference": projectStore.saveSecretReference(command.projectId, { id: command.id, description: command.description }); return { projectId: command.projectId };
+        case "delete-secret-reference": projectStore.deleteSecretReference(command.projectId, command.id); return { projectId: command.projectId };
         case "archive": projectStore.setProjectArchived(command.projectId, command.archived); return { projectId: command.archived ? null : command.projectId };
         case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
       }

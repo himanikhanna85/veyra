@@ -47,7 +47,8 @@ export interface EvidenceCleanupResult { deletedBytes: number; deletedFiles: num
 export type BackupDialogResult = { canceled: true } | { canceled: false; fileName: string; projectId: string };
 export interface EnvironmentVariableDto { key: string; value: string }
 export interface ProjectEnvironmentDto { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariableDto[] }
-export interface ProjectDetailDto { applicationUrl: string; archived: boolean; environmentName: string; environments: ProjectEnvironmentDto[]; id: string; name: string }
+export interface SecretReferenceDto { description: string; hasValue: false; id: string }
+export interface ProjectDetailDto { applicationUrl: string; archived: boolean; environmentName: string; environments: ProjectEnvironmentDto[]; id: string; name: string; secretReferences: SecretReferenceDto[] }
 export interface ProjectSummaryDto { archived: boolean; environmentName: string; id: string; name: string }
 export interface ProjectOverviewDto { latestOutcome: string | null; latestRunAt: string | null; moduleItems: Array<{ id: string; name: string }>; modules: number; outcomeCounts: Record<string, number>; passRate: number | null; recentRunItems: Array<{ completedAt: string; id: string; outcome: string }>; recentRuns: number; tests: number }
 export interface ProjectWorkspace { activeProject: ProjectDetailDto | null; overview: ProjectOverviewDto | null; projects: ProjectSummaryDto[] }
@@ -58,6 +59,8 @@ export type ProjectCommand =
   | { type: "activate-environment"; projectId: string; environmentId: string }
   | { type: "save-variable"; projectId: string; environmentId: string; key: string; value: string }
   | { type: "delete-variable"; projectId: string; environmentId: string; key: string }
+  | { type: "save-secret-reference"; projectId: string; id: string; description?: string }
+  | { type: "delete-secret-reference"; projectId: string; id: string }
   | { type: "archive"; projectId: string; archived: boolean }
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }

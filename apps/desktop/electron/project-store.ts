@@ -4,8 +4,9 @@ import { mkdirSync } from "node:fs";
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
+const SECRET_REFERENCE_ID = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
 export interface ProjectRecord {
   applicationUrl: string;
@@ -17,7 +18,8 @@ export interface ProjectRecord {
 
 export interface EnvironmentVariable { key: string; value: string }
 export interface ProjectEnvironment { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariable[] }
-export interface ProjectDetail extends ProjectRecord { archived: boolean; environments: ProjectEnvironment[] }
+export interface SecretReference { description: string; hasValue: false; id: string }
+export interface ProjectDetail extends ProjectRecord { archived: boolean; environments: ProjectEnvironment[]; secretReferences: SecretReference[] }
 export interface ProjectSummary { archived: boolean; environmentName: string; id: string; name: string }
 export interface ProjectOverview {
   latestOutcome: string | null;
@@ -52,6 +54,7 @@ interface BackupPayload {
   environments?: ProjectEnvironment[];
   project: ProjectRecord;
   runs: CompletedRunRecord[];
+  secretReferences?: Array<{ description?: string; id: string }>;
 }
 
 function assertSafeId(value: unknown, label: string): asserts value is string {
@@ -83,14 +86,14 @@ function assertIsoDate(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || Number.isNaN(Date.parse(value)) || new Date(value).toISOString() !== value) throw new Error(`${label} is invalid`);
 }
 
-function validateBackupPayload(value: unknown, requireEnvironments = false): BackupPayload {
+function validateBackupPayload(value: unknown, version = 1): BackupPayload {
   if (!isRecord(value) || !isRecord(value.project) || !Array.isArray(value.definitions) || !Array.isArray(value.runs) || !Array.isArray(value.evidence)) throw new Error("Project backup payload is invalid");
   const project = value.project;
   for (const field of ["id", "name", "applicationUrl", "environmentName"] as const) if (typeof project[field] !== "string" || project[field].length === 0) throw new Error(`Project ${field} is invalid`);
   assertSafeId(project.id, "Project id");
   try { new URL(project.applicationUrl as string); } catch { throw new Error("Project application URL is invalid"); }
   const projectId = project.id as string;
-  if (requireEnvironments && value.environments === undefined) throw new Error("Version 2 project backup is missing environments");
+  if (version >= 2 && value.environments === undefined) throw new Error(`Version ${version} project backup is missing environments`);
   if (value.environments !== undefined) {
     if (!Array.isArray(value.environments) || value.environments.length === 0) throw new Error("Project environments are invalid");
     let activeCount = 0;
@@ -111,6 +114,15 @@ function validateBackupPayload(value: unknown, requireEnvironments = false): Bac
       }
     }
     if (activeCount !== 1) throw new Error("Project backup must contain one active environment");
+  }
+  if (version >= 3 && value.secretReferences === undefined) throw new Error("Version 3 project backup is missing secret references");
+  if (value.secretReferences !== undefined) {
+    if (!Array.isArray(value.secretReferences)) throw new Error("Project secret references are invalid");
+    const identifiers = new Set<string>();
+    for (const reference of value.secretReferences) {
+      if (!isRecord(reference) || Object.keys(reference).some((key) => !["id", "description"].includes(key)) || typeof reference.id !== "string" || !SECRET_REFERENCE_ID.test(reference.id) || (reference.description !== undefined && (typeof reference.description !== "string" || reference.description.length > 200)) || identifiers.has(reference.id)) throw new Error("Secret reference is invalid or duplicated");
+      identifiers.add(reference.id);
+    }
   }
   const seenDefinitions = new Set<string>();
   for (const item of value.definitions) {
@@ -194,6 +206,10 @@ export class ProjectStore {
       INSERT INTO environments (id,project_id,name,base_url,is_active,created_at,updated_at) SELECT 'default',id,environment_name,application_url,1,updated_at,updated_at FROM projects;
       PRAGMA user_version = 2;
       COMMIT;`);
+    if (version < 3) this.#database.exec(`BEGIN IMMEDIATE;
+      CREATE TABLE secret_references (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, id TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(project_id,id));
+      PRAGMA user_version = 3;
+      COMMIT;`);
   }
 
   createProject(project: ProjectRecord): ProjectDetail {
@@ -236,7 +252,9 @@ export class ProjectStore {
       id: String(row.id), name: String(row.name), baseUrl: String(row.base_url), isActive: Boolean(row.is_active),
       variables: (this.#database.prepare("SELECT key,value FROM environment_variables WHERE project_id=? AND environment_id=? ORDER BY key").all(id, String(row.id)) as Record<string, unknown>[]).map((variable) => ({ key: String(variable.key), value: String(variable.value) })),
     }));
-    return { ...project, archived: project.archivedAt != null, environments };
+    const secretReferences = (this.#database.prepare("SELECT id,description FROM secret_references WHERE project_id=? ORDER BY id").all(id) as Record<string, unknown>[])
+      .map((row) => ({ id: String(row.id), description: String(row.description), hasValue: false as const }));
+    return { ...project, archived: project.archivedAt != null, environments, secretReferences };
   }
 
   saveEnvironment(projectId: string, environment: { baseUrl: string; id: string; name: string }): ProjectEnvironment {
@@ -269,6 +287,27 @@ export class ProjectStore {
   }
 
   deleteEnvironmentVariable(projectId: string, environmentId: string, key: string): void { this.#database.prepare("DELETE FROM environment_variables WHERE project_id=? AND environment_id=? AND key=?").run(projectId, environmentId, key); }
+
+  saveSecretReference(projectId: string, reference: { description?: string; id: string }): SecretReference {
+    if (!this.getProject(projectId)) throw new Error("Project not found");
+    const id = reference.id.trim();
+    const description = reference.description?.trim() ?? "";
+    if (!SECRET_REFERENCE_ID.test(id)) throw new Error("Secret identifier must start with a letter and contain only letters, numbers or underscores");
+    if (description.length > 200) throw new Error("Secret description must be 200 characters or fewer");
+    const now = new Date().toISOString();
+    try {
+      this.#database.prepare("INSERT INTO secret_references (project_id,id,description,created_at,updated_at) VALUES (?,?,?,?,?)").run(projectId, id, description, now, now);
+    } catch (error) {
+      if (String(error).includes("UNIQUE constraint failed")) throw new Error("A secret reference with this identifier already exists");
+      throw error;
+    }
+    return { id, description, hasValue: false };
+  }
+
+  deleteSecretReference(projectId: string, id: string): void {
+    if (!SECRET_REFERENCE_ID.test(id)) throw new Error("Secret identifier is invalid");
+    this.#database.prepare("DELETE FROM secret_references WHERE project_id=? AND id=?").run(projectId, id);
+  }
 
   setProjectArchived(id: string, archived: boolean): ProjectDetail {
     if (!this.getProject(id)) throw new Error("Project not found");
@@ -417,22 +456,24 @@ export class ProjectStore {
     const definitions = (this.#database.prepare("SELECT kind,id,revision,payload_json FROM definitions WHERE project_id=? ORDER BY kind,id").all(projectId) as Record<string, unknown>[]).map((row) => ({ kind: String(row.kind), id: String(row.id), revision: Number(row.revision), payload: JSON.parse(String(row.payload_json)) }));
     const runs = (this.#database.prepare("SELECT id,project_id,completed_at,outcome,definition_snapshot_json FROM completed_runs WHERE project_id=? ORDER BY completed_at,id").all(projectId) as Record<string, unknown>[]).map((row) => ({ id: String(row.id), projectId: String(row.project_id), completedAt: String(row.completed_at), outcome: String(row.outcome), definitionSnapshot: JSON.parse(String(row.definition_snapshot_json)) }));
     const evidenceRows = this.#database.prepare("SELECT id,relative_path,media_type,size,created_at FROM evidence_assets WHERE project_id=? ORDER BY id").all(projectId) as Record<string, unknown>[];
-    return { project, environments: this.getProjectDetail(projectId)?.environments ?? [], definitions, runs, evidence: evidenceRows.map((row) => ({ id: String(row.id), relativePath: String(row.relative_path), mediaType: String(row.media_type), size: Number(row.size), createdAt: String(row.created_at), base64: "" })) };
+    const detail = this.getProjectDetail(projectId);
+    const secretReferences = (detail?.secretReferences ?? []).map((reference) => ({ id: reference.id, ...(reference.description ? { description: reference.description } : {}) }));
+    return { project, environments: detail?.environments ?? [], secretReferences, definitions, runs, evidence: evidenceRows.map((row) => ({ id: String(row.id), relativePath: String(row.relative_path), mediaType: String(row.media_type), size: Number(row.size), createdAt: String(row.created_at), base64: "" })) };
   }
 
   async exportProject(projectId: string, destination: string): Promise<void> {
     const payload = this.#backupPayload(projectId);
     for (const item of payload.evidence) item.base64 = (await readFile(join(this.#evidenceRoot, item.relativePath))).toString("base64");
     await mkdirSync(dirname(destination), { recursive: true });
-    await writeFile(destination, JSON.stringify({ format: "veyra-project", version: 2, checksum: checksum(payload), payload }, null, 2), { mode: 0o600 });
+    await writeFile(destination, JSON.stringify({ format: "veyra-project", version: 3, checksum: checksum(payload), payload }, null, 2), { mode: 0o600 });
   }
 
   async restoreProject(source: string): Promise<ProjectRecord> {
     if ((await stat(source)).size > 512 * 1024 * 1024) throw new Error("Project backup exceeds the 512 MB import limit");
     const document = JSON.parse(await readFile(source, "utf8")) as { format?: string; version?: number; checksum?: string; payload?: unknown };
-    if (document.format !== "veyra-project" || ![1, 2].includes(document.version ?? 0) || !document.payload) throw new Error("Unsupported Veyra project backup");
+    if (document.format !== "veyra-project" || ![1, 2, 3].includes(document.version ?? 0) || !document.payload) throw new Error("Unsupported Veyra project backup");
     if (checksum(document.payload as BackupPayload) !== document.checksum) throw new Error("Project backup checksum is invalid");
-    const payload = validateBackupPayload(document.payload, document.version === 2);
+    const payload = validateBackupPayload(document.payload, document.version);
     const existingProject = this.getProject(payload.project.id);
     if (existingProject) {
       if (existingProject.archivedAt) {
@@ -452,6 +493,7 @@ export class ProjectStore {
           for (const variable of environment.variables) this.saveEnvironmentVariable(payload.project.id, environment.id, variable);
         }
       }
+      for (const reference of payload.secretReferences ?? []) this.saveSecretReference(payload.project.id, reference);
       for (const definition of payload.definitions) this.saveDefinition(payload.project.id, definition.kind, definition.id, definition.revision, definition.payload);
       for (const run of payload.runs) this.recordCompletedRun(run);
       this.#database.exec("COMMIT");

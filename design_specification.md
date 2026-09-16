@@ -152,6 +152,14 @@ shell and standard components; it may not introduce a second visual language.
 - Settings uses the same 18 px white modal surface. It supports project name
   and URL editing, an environment list with one explicit Active state, adding
   named environments, and environment-scoped non-secret key/value rows.
+- Project Settings includes a separate **Secret references** section below
+  environment variables. A reference has a logical identifier and optional
+  description, never a plaintext value in E04.T01. Each row shows a lock icon,
+  identifier, description and the neutral status **Value not configured**.
+  Creation accepts identifiers matching `letter + letters/numbers/underscore`
+  and explains that OS-secured value entry arrives in the next secret-storage
+  slice. Deletion removes only reference metadata and uses an explicit labelled
+  control with a 40 px hit area.
 - Switching environment immediately updates the sidebar/header context. Project
   overview values always come from the selected project's persisted records.
 - Archive requires a second click labelled **Confirm archive**. Permanent

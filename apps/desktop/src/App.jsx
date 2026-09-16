@@ -6,7 +6,7 @@ import { ProjectDialog } from "./projects/ProjectDialog.jsx";
 
 const previewWorkspace = {
   projects: [{ id: "preview", name: "Commerce Storefront", environmentName: "Staging", archived: false }],
-  activeProject: { id: "preview", name: "Commerce Storefront", applicationUrl: "https://shop.example", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.example", isActive: true, variables: [] }] },
+  activeProject: { id: "preview", name: "Commerce Storefront", applicationUrl: "https://shop.example", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.example", isActive: true, variables: [] }], secretReferences: [] },
   overview: { tests: 18, modules: 7, recentRuns: 14, latestOutcome: "FAIL", passRate: 89 },
 };
 

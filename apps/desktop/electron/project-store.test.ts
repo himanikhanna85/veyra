@@ -54,6 +54,22 @@ describe("ProjectStore", () => {
     ]);
   });
 
+  it("creates and removes named secret references without storing a value", async () => {
+    const { store } = await createStore();
+    store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+
+    store.saveSecretReference("shop", { id: "shop_password", description: "Test shopper password" });
+
+    expect(store.getProjectDetail("shop")?.secretReferences).toEqual([
+      { id: "shop_password", description: "Test shopper password", hasValue: false },
+    ]);
+    expect(JSON.stringify(store.getProjectDetail("shop"))).not.toContain("value");
+    expect(() => store.saveSecretReference("shop", { id: "shop_password" })).toThrow(/already exists/i);
+    expect(() => store.saveSecretReference("shop", { id: "invalid-name", description: "No" })).toThrow(/identifier/i);
+    store.deleteSecretReference("shop", "shop_password");
+    expect(store.getProjectDetail("shop")?.secretReferences).toEqual([]);
+  });
+
   it("archives projects and requires an exact project name before deletion", async () => {
     const { root, store } = await createStore();
     store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
@@ -99,7 +115,7 @@ describe("ProjectStore", () => {
 
     const reopened = new ProjectStore(root);
     stores.push(reopened);
-    expect(reopened.schemaVersion).toBe(2);
+    expect(reopened.schemaVersion).toBe(3);
     expect(reopened.getProject("project-1")).toMatchObject({ name: "Shop", environmentName: "Staging" });
   });
 
@@ -130,9 +146,17 @@ describe("ProjectStore", () => {
     source.store.saveProject({ id: "project-1", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
     source.store.saveEnvironment("project-1", { id: "production", name: "Production", baseUrl: "https://www.shop.test" });
     source.store.saveEnvironmentVariable("project-1", "production", { key: "locale", value: "en-IN" });
+    source.store.saveSecretReference("project-1", { id: "shop_password", description: "Test shopper password" });
+    source.store.saveSecretReference("project-1", { id: "api_token" });
     await source.store.writeEvidence("project-1", "shot-1", new Uint8Array([4, 5, 6]), "image/png");
     const backupPath = join(source.root, "shop.veyra-project.json");
     await source.store.exportProject("project-1", backupPath);
+    const exported = JSON.parse(await readFile(backupPath, "utf8"));
+    expect(exported.payload.secretReferences).toEqual([
+      { id: "api_token" },
+      { id: "shop_password", description: "Test shopper password" },
+    ]);
+    expect(JSON.stringify(exported.payload.secretReferences)).not.toContain("hasValue");
 
     const target = await createStore();
     await target.store.restoreProject(backupPath);
@@ -140,15 +164,27 @@ describe("ProjectStore", () => {
     expect(target.store.getProjectDetail("project-1")?.environments).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: "production", variables: [{ key: "locale", value: "en-IN" }] }),
     ]));
+    expect(target.store.getProjectDetail("project-1")?.secretReferences).toEqual([
+      { id: "api_token", description: "", hasValue: false },
+      { id: "shop_password", description: "Test shopper password", hasValue: false },
+    ]);
     expect((await target.store.getStorageUsage("project-1")).evidenceBytes).toBe(3);
 
     const incomplete = JSON.parse(await readFile(backupPath, "utf8"));
     delete incomplete.payload.environments;
     incomplete.checksum = createHash("sha256").update(canonicalJson(incomplete.payload)).digest("hex");
-    const incompletePath = join(source.root, "incomplete-v2.veyra-project.json");
+    const incompletePath = join(source.root, "incomplete-v3.veyra-project.json");
     await writeFile(incompletePath, JSON.stringify(incomplete));
     const incompleteTarget = await createStore();
     await expect(incompleteTarget.store.restoreProject(incompletePath)).rejects.toThrow(/missing environments/i);
+
+    const missingReferences = JSON.parse(await readFile(backupPath, "utf8"));
+    delete missingReferences.payload.secretReferences;
+    missingReferences.checksum = createHash("sha256").update(canonicalJson(missingReferences.payload)).digest("hex");
+    const missingReferencesPath = join(source.root, "missing-secret-references-v3.veyra-project.json");
+    await writeFile(missingReferencesPath, JSON.stringify(missingReferences));
+    const missingReferencesTarget = await createStore();
+    await expect(missingReferencesTarget.store.restoreProject(missingReferencesPath)).rejects.toThrow(/missing secret references/i);
 
     const tampered = JSON.parse(await readFile(backupPath, "utf8"));
     tampered.payload.project.name = "Tampered";

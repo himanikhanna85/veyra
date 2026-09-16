@@ -535,6 +535,27 @@ an active same-identity duplicate remains blocked to prevent silent overwrite.
 
 Create named secret references.
 
+#### E04.T01 implementation baseline (2026-09-16)
+
+Secret creation starts with project-scoped logical metadata: an identifier and
+an optional description. Identifiers begin with a letter, contain only letters,
+numbers and underscores, and are unique within their project. Project Settings
+shows these references with an explicit `Value not configured` state and lets
+the user remove the metadata without ever asking for or displaying plaintext.
+
+The reference table deliberately has no value column, the renderer/main DTO has
+no value field, and the E04.T01 command boundary accepts no value argument. This
+is a structural safeguard rather than UI masking: a caller cannot accidentally
+persist a secret in SQLite through this feature. Actual values remain deferred
+to FR04.02, where they will be owned by an operating-system secure-store
+adapter. This split was chosen over temporary SQLite storage because migrating
+plaintext later would create avoidable leakage and cleanup risk.
+
+Project backup format version 3 includes identifiers and descriptions so the
+configuration map remains portable, but excludes values and secure-store
+locators because those are device-owned credentials. Restore stays compatible
+with versions 1 and 2, treating their absent reference list as empty.
+
 ### FR04.02 --- Secure storage \[P0\]
 
 Use OS-secure storage/keychain where practical.

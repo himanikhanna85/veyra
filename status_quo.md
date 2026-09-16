@@ -6,7 +6,7 @@
 - The renderer is sandboxed, context-isolated and Node-free. Production assets use the local `veyra://app` origin, navigation and permissions are denied by default, and the bundled preload exposes only nine typed, allow-listed APIs/events.
 - The main process owns single-instance window behavior and a versioned atomic lifecycle journal under Electron's stable application-data location. Shutdown cleanup is bounded and idempotent; unfinished or unclean operations are recovered on the next launch.
 - macOS arm64/x64 DMG and ZIP packages and a Windows x64 NSIS installer build successfully. GitHub Actions is configured to repeat tests and packaging on native macOS and Windows runners after the repository is pushed.
-- Source and packaged Apple Silicon apps passed two-launch smoke checks proving renderer isolation, IPC access, clean shutdown and persisted lifecycle state. The 41-test suite, TypeScript check, Vite/Electron build, Sites tests and desktop restart smoke check pass.
+- Source and packaged Apple Silicon apps passed two-launch smoke checks proving renderer isolation, IPC access, clean shutdown and persisted lifecycle state. The 43-test suite, TypeScript check, Vite/Electron build, Sites tests and desktop restart smoke check pass.
 - The approved transparent Veyra mark is embedded in the development window, macOS bundle/Dock metadata and Windows executable/installer resources; its lossless source and generated packaging derivative are both versioned.
 - The desktop sidebar now uses the supplied `veyra_tr_icon.png` mark and the exact rectlogo-derived wordmark artwork. The former generic blue diamond and font-rendered label have been removed; the combined lockup is exposed accessibly as “Veyra”.
 - Current packaging limits are deliberate E22 work: artifacts are unsigned and have no update channel. Windows and Intel macOS artifacts are built but still need runtime execution on native target hosts; this ARM machine lacks the Intel compatibility runtime.
@@ -16,7 +16,8 @@
 - Data-screen action buttons now use the shared icon slot and consistent 7 px icon-to-label spacing; Restore, Refresh, Export and Clean Evidence no longer visually collide with their icons.
 - E03 Projects & Environments is implemented. Users can create and edit projects, add and activate named environments, manage non-secret environment variables, switch projects, view persisted Overview health, archive projects with a second confirmation, and permanently delete only after entering the exact project name.
 - Permanent deletion now adds a separate irreversible-action alert after the exact-name gate. Archived projects remain exportable in Data, and restoring their valid same-identity backup reactivates them; active duplicates remain protected from overwrite.
-- Project backup format version 2 preserves environments and variables while restore remains compatible with existing version 1 backups.
+- E04.T01 is implemented. Project Settings can create and delete project-scoped logical secret identifiers with optional descriptions and an explicit `Value not configured` state. No secret value field exists in SQLite, the typed command boundary or the renderer model; operating-system-secured values remain E04.T02.
+- Project backup format version 3 preserves value-free secret-reference metadata as well as environments and variables, while restore remains compatible with existing versions 1 and 2. Backups never contain secret values or secure-store locators.
 - `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21` through `DEC-23`, locking the approved visual system, representative flow, application mark and in-product lockup.
 - Root `design_specification.md` is now the design source of truth. It formalizes the approved `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` shell, tokens, components, interactions, accessibility contract, overlays and seven screens.
 - The approved product language is a dark `#101827` navigation shell, warm `#F6F7F5` workspace, Inter with limited Instrument Serif, blue confirmation/selection, one orange high-energy action per screen and teal links/assertions.
@@ -30,7 +31,7 @@
 ## In flight
 
 - No implementation task is currently in progress.
-- No next implementation task has been approved; E04 Secrets & Sensitive Data is the next logical slice.
+- No next implementation task has been approved; E04.T02 secure value storage is the next logical slice.
 
 ## Open decisions
 
@@ -42,4 +43,4 @@
 
 ## Most useful next action
 
-Approve and start E04 Secrets & Sensitive Data, using E03's environment-variable boundary without storing secret values in SQLite.
+Approve and start E04.T02, attaching secret values to the new logical references through an operating-system secure-store adapter without routing plaintext through SQLite or project backups.

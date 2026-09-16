@@ -25,6 +25,7 @@ describe("desktop main-process IPC", () => {
       recoveredInterruptedOperationIds: [],
     };
 
+    const applyProjectCommand = vi.fn(() => ({ projectId: "shop" }));
     const dispose = registerDesktopIpc({
       getAppInfo: () => appInfo,
       getLifecycleSnapshot: () => lifecycle,
@@ -33,7 +34,7 @@ describe("desktop main-process IPC", () => {
       exportProjectBackup: () => ({ canceled: true }),
       restoreProjectBackup: () => ({ canceled: true }),
       getProjectWorkspace: () => ({ activeProject: null, overview: null, projects: [] }),
-      applyProjectCommand: () => ({ projectId: null }),
+      applyProjectCommand,
       ipcMain,
       isTrustedSender: (url) => url === "veyra://app/index.html",
     });
@@ -69,6 +70,12 @@ describe("desktop main-process IPC", () => {
     await expect(
       handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "delete", projectId: "../bad", confirmationName: "Shop" }),
     ).rejects.toThrow(/invalid/i);
+    await expect(
+      handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Shopper login", value: "must-not-cross-ipc" }),
+    ).resolves.toEqual({ projectId: "shop" });
+    expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Shopper login" });
+    await handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "save-secret-reference", projectId: "shop", id: "api_token" });
+    expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "api_token", description: undefined });
 
     dispose();
     expect(removeHandler).toHaveBeenCalledTimes(8);

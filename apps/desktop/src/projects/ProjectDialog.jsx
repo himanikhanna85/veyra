@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Archive, Check, LoaderCircle, Plus, Trash2, X } from "lucide-react";
+import { AlertCircle, Archive, Check, LoaderCircle, LockKeyhole, Plus, Trash2, X } from "lucide-react";
 import { Button } from "../design-system/Button.jsx";
 import "./project-dialog.css";
 
@@ -13,12 +13,14 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
   const [environmentName, setEnvironmentName] = useState("Staging");
   const [environmentDraft, setEnvironmentDraft] = useState({ name: "", baseUrl: "https://" });
   const [variableDraft, setVariableDraft] = useState({ key: "", value: "" });
+  const [secretReferenceDraft, setSecretReferenceDraft] = useState({ id: "", description: "" });
   const [deleteName, setDeleteName] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const busy = Boolean(busyAction);
+  const secretReferenceIdIsInvalid = Boolean(secretReferenceDraft.id && !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(secretReferenceDraft.id));
 
   useEffect(() => {
     setName(project?.name ?? "");
@@ -57,8 +59,8 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
 
   async function run(command, close = false, actionKey = command.type) {
     setBusyAction(actionKey); setError("");
-    try { await onCommand(command); if (close) onClose(); }
-    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); }
+    try { await onCommand(command); if (close) onClose(); return true; }
+    catch (reason) { setError(reason instanceof Error ? reason.message : String(reason)); return false; }
     finally { setBusyAction(""); }
   }
 
@@ -71,6 +73,11 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
   function cancelDelete() {
     setConfirmDelete(false);
     window.requestAnimationFrame(() => deleteTriggerRef.current?.focus());
+  }
+
+  async function addSecretReference() {
+    const saved = await run({ type: "save-secret-reference", projectId: project.id, ...secretReferenceDraft });
+    if (saved) setSecretReferenceDraft({ id: "", description: "" });
   }
 
   return (
@@ -117,6 +124,19 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
                 <input aria-label="Variable name" disabled={busy} placeholder="e.g. locale" value={variableDraft.key} onChange={(event) => setVariableDraft((value) => ({ ...value, key: event.target.value }))} />
                 <input aria-label="Variable value" disabled={busy} placeholder="e.g. en-IN" value={variableDraft.value} onChange={(event) => setVariableDraft((value) => ({ ...value, value: event.target.value }))} />
                 <Button busy={busyAction === "save-variable"} disabled={busy || !activeEnvironment || !variableDraft.key.trim()} icon={Plus} onClick={() => activeEnvironment && void run({ type: "save-variable", projectId: project.id, environmentId: activeEnvironment.id, ...variableDraft })} size="compact">Save</Button>
+              </div>
+            </section>
+
+            <section className="project-dialog-section">
+              <h3>Secret references</h3><p>Create logical names now. OS-secured value storage is added in the next security slice.</p>
+              <div className="secret-reference-list">
+                {(project.secretReferences ?? []).map((reference) => { const deleting = busyAction === `delete-secret-${reference.id}`; return <div className="secret-reference-row" key={reference.id}><LockKeyhole aria-hidden="true" size={16} /><span><code>{reference.id}</code><small>{reference.description || "No description"}</small></span><span className="secret-reference-status">Value not configured</span><button aria-busy={deleting || undefined} aria-label={deleting ? `Deleting secret reference ${reference.id}` : `Delete secret reference ${reference.id}`} aria-live="polite" disabled={busy} onClick={() => void run({ type: "delete-secret-reference", projectId: project.id, id: reference.id }, false, `delete-secret-${reference.id}`)} type="button">{deleting ? <LoaderCircle aria-hidden="true" className="button__spinner" size={14} /> : <Trash2 aria-hidden="true" size={14} />}</button></div>; })}
+                {(project.secretReferences ?? []).length === 0 ? <span className="empty-copy">No secret references yet.</span> : null}
+              </div>
+              <div className="inline-form inline-form--secret">
+                <label>Secret identifier<input aria-describedby={secretReferenceIdIsInvalid ? "secret-reference-id-error" : undefined} aria-invalid={secretReferenceIdIsInvalid || undefined} disabled={busy} pattern="[A-Za-z][A-Za-z0-9_]*" placeholder="e.g. shop_password" value={secretReferenceDraft.id} onChange={(event) => setSecretReferenceDraft((value) => ({ ...value, id: event.target.value }))} />{secretReferenceIdIsInvalid ? <small className="field-error" id="secret-reference-id-error"><AlertCircle aria-hidden="true" size={13} />Start with a letter; use up to 64 letters, numbers or underscores.</small> : null}</label>
+                <label><span className="field-label">Secret description <small>(optional)</small></span><input disabled={busy} maxLength={200} placeholder="What this credential is used for" value={secretReferenceDraft.description} onChange={(event) => setSecretReferenceDraft((value) => ({ ...value, description: event.target.value }))} /></label>
+                <Button aria-label="Add secret reference" busy={busyAction === "save-secret-reference"} disabled={busy || secretReferenceIdIsInvalid || !secretReferenceDraft.id} icon={Plus} onClick={() => void addSecretReference()} size="compact">Add</Button>
               </div>
             </section>
 

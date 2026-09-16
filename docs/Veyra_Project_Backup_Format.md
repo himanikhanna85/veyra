@@ -8,11 +8,12 @@ Veyra V0 exports one UTF-8 JSON document with the extension
 ```json
 {
   "format": "veyra-project",
-  "version": 2,
+  "version": 3,
   "checksum": "sha256-of-canonical-payload",
   "payload": {
     "project": {},
     "environments": [],
+    "secretReferences": [],
     "definitions": [],
     "runs": [],
     "evidence": []
@@ -24,6 +25,9 @@ Veyra V0 exports one UTF-8 JSON document with the extension
 - `environments` contains every named environment, its active state, base URL
   and non-secret key/value variables. Secret values are never part of this
   document.
+- `secretReferences` contains project-scoped logical identifiers and optional
+  descriptions. It never contains plaintext, encrypted or encoded secret
+  values, or an operating-system secure-store locator.
 - `definitions` contains versioned test/module/domain definitions.
 - `runs` contains immutable completed-run snapshots. A later definition edit
   therefore cannot change the meaning of an exported historical run.
@@ -41,6 +45,7 @@ duplicate rule: after the backup passes full validation, restore reactivates
 that retained project and makes it available in the normal switcher. An active
 same-identity project is still rejected and is never overwritten silently.
 
-Version 2 added complete environment portability for E03. Restore continues to
-accept version 1 documents; they are imported with their legacy single default
-environment.
+Version 3 added portable secret-reference metadata for E04.T01. Version 2 added
+complete environment portability for E03. Restore continues to accept versions
+1 and 2; version 1 documents are imported with their legacy single default
+environment, and neither legacy version invents missing secret references.

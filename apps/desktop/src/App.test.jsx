@@ -153,6 +153,25 @@ describe("Veyra desktop foundation", () => {
     expect(screen.getByRole("button", { name: "Project settings" })).toHaveFocus();
   });
 
+  it("creates a named secret reference without asking for a secret value", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: "shop" });
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValue(workspace), applyProjectCommand };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    const dialog = screen.getByRole("dialog", { name: "Shop QA" });
+    expect(within(dialog).queryByLabelText(/secret value/i)).not.toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Secret identifier"), "shop_password");
+    await user.type(within(dialog).getByLabelText(/Secret description/), "Test shopper password");
+    await user.click(within(dialog).getByRole("button", { name: "Add secret reference" }));
+
+    await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Test shopper password" }));
+  });
+
   it("requires a final irreversible confirmation before deleting a project", async () => {
     const user = userEvent.setup();
     const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }] };

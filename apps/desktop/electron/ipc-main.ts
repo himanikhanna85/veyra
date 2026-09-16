@@ -84,6 +84,8 @@ export function registerDesktopIpc({
       case "activate-environment": return { type: "activate-environment", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId) };
       case "save-variable": return { type: "save-variable", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId), key: requiredString(value.key, "variable name"), value: requiredString(value.value, "variable value") };
       case "delete-variable": return { type: "delete-variable", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId), key: requiredString(value.key, "variable name") };
+      case "save-secret-reference": return { type: "save-secret-reference", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier"), description: value.description == null ? undefined : requiredString(value.description, "secret description") };
+      case "delete-secret-reference": return { type: "delete-secret-reference", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier") };
       case "archive": {
         if (typeof value.archived !== "boolean") throw new Error("Invalid archive state");
         return { type: "archive", projectId: validateProjectId(value.projectId), archived: value.archived };

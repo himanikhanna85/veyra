@@ -9,7 +9,7 @@ Done = completed and verified/documented.
 
 ## Pending
 
-No task is currently approved and queued.
+None.
 
 ## Not Started
 
@@ -19,7 +19,6 @@ No task is currently approved and queued.
 
 #### E04 — Secrets & Sensitive Data (M02/M14)
 
-- [ ] E04.T01 — Create named secret references without exposing values (`P0`; `FR04.01`).
 - [ ] E04.T02 — Store secret values in the operating-system secure store (`P0`; `FR04.02`).
 - [ ] E04.T03 — Resolve secret references only at authorized runtime boundaries (`P0`; `FR04.03`).
 - [ ] E04.T04 — Mask secret values throughout product UI (`P0`; `FR04.04`).
@@ -430,6 +429,7 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] E04.T01 — Added project-scoped named secret-reference metadata, value-free typed IPC/UI, and portable value-free backup/restore (`P0`; `FR04.01`).
 - [x] B01 — Added a final irreversible-action confirmation modal after exact-name project deletion confirmation (`FR03.06`; `design_specification.md`).
 - [x] B02 — Reactivated an archived project when its valid backup is restored into the same workspace while retaining active-duplicate protection (`FR02.06`; `FR03.06`).
 - [x] D09 — Closed the E03 fixed-diff design/spec review: truthful persisted Overview details, first-project/loading/error states, status icon-labels, modal focus containment and mutation busy states (`FR03.01`–`FR03.06`; `SCR-OVERVIEW`; `design_specification.md`).
