@@ -9,7 +9,12 @@ Done = completed and verified/documented.
 
 ## Pending
 
-None.
+- [ ] E04.T02 — Store secret values in the operating-system secure store (`P0`; `FR04.02`).
+- [ ] E04.T03 — Resolve secret references only at authorized runtime boundaries (`P0`; `FR04.03`).
+- [ ] E04.T04 — Mask secret values throughout product UI (`P0`; `FR04.04`).
+- [ ] E04.T05 — Redact secrets from reports and logs (`P0`; `FR04.05`).
+- [ ] E04.T06 — Redact secrets before any AI request (`P0`; `FR04.06`).
+- [ ] E04.T07 — Protect sensitive evidence at rest and on access (`P1`; `FR04.07`).
 
 ## Not Started
 
@@ -18,13 +23,6 @@ None.
 ### M02 — Projects, Environments & Secrets
 
 #### E04 — Secrets & Sensitive Data (M02/M14)
-
-- [ ] E04.T02 — Store secret values in the operating-system secure store (`P0`; `FR04.02`).
-- [ ] E04.T03 — Resolve secret references only at authorized runtime boundaries (`P0`; `FR04.03`).
-- [ ] E04.T04 — Mask secret values throughout product UI (`P0`; `FR04.04`).
-- [ ] E04.T05 — Redact secrets from reports and logs (`P0`; `FR04.05`).
-- [ ] E04.T06 — Redact secrets before any AI request (`P0`; `FR04.06`).
-- [ ] E04.T07 — Protect sensitive evidence at rest and on access (`P1`; `FR04.07`).
 
 ### M03 — Controlled Browser & Teach
 
