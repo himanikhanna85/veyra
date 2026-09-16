@@ -1,9 +1,5 @@
 # Veyra
 
-<img width="180" height="60" alt="veyra_rectlogo" src="https://github.com/user-attachments/assets/7df74865-073c-4c10-8fd2-b801fa220180" />
-
-
-
 Veyra is an **Application Quality Intelligence Platform** that helps manual and low-code QA teams turn demonstrated browser workflows into reusable, maintainable automation.
 
 Instead of treating test scripts as the primary source of QA knowledge, Veyra is designed to learn what application behavior means. Its long-term foundation is an evolving, human-governed **Application Behaviour Model (ABM)** built from demonstrations, assertions, reusable modules, execution evidence, failures, and approved business rules.
