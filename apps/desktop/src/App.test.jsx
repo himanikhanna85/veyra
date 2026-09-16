@@ -152,4 +152,30 @@ describe("Veyra desktop foundation", () => {
     expect(screen.queryByRole("dialog", { name: "Shop QA" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Project settings" })).toHaveFocus();
   });
+
+  it("requires a final irreversible confirmation before deleting a project", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: null });
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValue(workspace), applyProjectCommand };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    await user.type(screen.getByLabelText("Confirm project name"), "Shop QA");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(applyProjectCommand).not.toHaveBeenCalled();
+    let confirmation = screen.getByRole("alertdialog", { name: "Delete Shop QA permanently?" });
+    expect(within(confirmation).getByText(/cannot be undone/i)).toBeVisible();
+    await user.click(within(confirmation).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog", { name: "Delete Shop QA permanently?" })).not.toBeInTheDocument();
+    expect(applyProjectCommand).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    confirmation = screen.getByRole("alertdialog", { name: "Delete Shop QA permanently?" });
+    await user.click(within(confirmation).getByRole("button", { name: "Delete project permanently" }));
+    await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "delete", projectId: "shop", confirmationName: "Shop QA" }));
+  });
 });

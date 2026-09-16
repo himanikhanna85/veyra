@@ -155,7 +155,11 @@ shell and standard components; it may not introduce a second visual language.
 - Switching environment immediately updates the sidebar/header context. Project
   overview values always come from the selected project's persisted records.
 - Archive requires a second click labelled **Confirm archive**. Permanent
-  deletion remains disabled until the exact project name is entered.
+  deletion remains disabled until the exact project name is entered. Selecting
+  Delete then opens a distinct alert dialog naming the project, explaining that
+  definitions, run history, environments, variables and evidence are removed
+  irreversibly. Cancel receives default focus; only **Delete project
+  permanently** commits the deletion.
 - Escape closes the overlay when it is not processing a change; the close
   control has an explicit accessible label and errors are announced.
 

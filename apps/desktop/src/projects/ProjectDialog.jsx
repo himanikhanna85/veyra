@@ -5,6 +5,8 @@ import "./project-dialog.css";
 
 export function ProjectDialog({ mode, onClose, onCommand, project }) {
   const dialogRef = useRef(null);
+  const deleteConfirmationRef = useRef(null);
+  const deleteTriggerRef = useRef(null);
   const previousFocusRef = useRef(document.activeElement);
   const [name, setName] = useState("");
   const [applicationUrl, setApplicationUrl] = useState("https://");
@@ -13,6 +15,7 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
   const [variableDraft, setVariableDraft] = useState({ key: "", value: "" });
   const [deleteName, setDeleteName] = useState("");
   const [confirmArchive, setConfirmArchive] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [error, setError] = useState("");
   const [busyAction, setBusyAction] = useState("");
   const busy = Boolean(busyAction);
@@ -21,6 +24,7 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
     setName(project?.name ?? "");
     setApplicationUrl(project?.applicationUrl ?? "https://");
     setEnvironmentName(project?.environmentName ?? "Staging");
+    setConfirmDelete(false);
     setError("");
   }, [mode, project]);
 
@@ -28,18 +32,24 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
 
   useEffect(() => {
     function handleDialogKey(event) {
-      if (event.key === "Escape" && !busy) { event.preventDefault(); onClose(); return; }
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        if (confirmDelete) { setConfirmDelete(false); window.requestAnimationFrame(() => deleteTriggerRef.current?.focus()); }
+        else onClose();
+        return;
+      }
       if (event.key !== "Tab") return;
-      const focusable = [...dialogRef.current.querySelectorAll("button:not(:disabled),input:not(:disabled),[href],[tabindex]:not([tabindex='-1'])")];
+      const focusRoot = confirmDelete ? deleteConfirmationRef.current : dialogRef.current;
+      const focusable = [...focusRoot.querySelectorAll("button:not(:disabled),input:not(:disabled),[href],[tabindex]:not([tabindex='-1'])")];
       if (!focusable.length) return;
       const first = focusable[0]; const last = focusable.at(-1);
-      if (!dialogRef.current.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+      if (!focusRoot.contains(document.activeElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
       else if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
     }
     window.addEventListener("keydown", handleDialogKey);
     return () => window.removeEventListener("keydown", handleDialogKey);
-  }, [busy, onClose]);
+  }, [busy, confirmDelete, onClose]);
 
   const activeEnvironment = useMemo(() => project?.environments.find((environment) => environment.isActive), [project]);
   const validUrl = (value) => { try { return ["http:", "https:"].includes(new URL(value).protocol); } catch { return false; } };
@@ -58,9 +68,14 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
     else void run({ type: "update", projectId: project.id, name, applicationUrl });
   }
 
+  function cancelDelete() {
+    setConfirmDelete(false);
+    window.requestAnimationFrame(() => deleteTriggerRef.current?.focus());
+  }
+
   return (
     <div className="project-dialog-backdrop" role="presentation">
-      <section aria-labelledby="project-dialog-title" aria-modal="true" className="project-dialog" ref={dialogRef} role="dialog">
+      <section aria-hidden={confirmDelete || undefined} aria-labelledby="project-dialog-title" aria-modal={!confirmDelete} className="project-dialog" inert={confirmDelete ? true : undefined} ref={dialogRef} role="dialog">
         <header>
           <div><span className="eyebrow">{mode === "create" ? "New workspace" : "Project settings"}</span><h2 id="project-dialog-title">{mode === "create" ? "Create project" : project.name}</h2></div>
           <button aria-label="Close project settings" className="icon-button" disabled={busy} onClick={onClose} type="button"><X aria-hidden="true" size={18} /></button>
@@ -108,12 +123,13 @@ export function ProjectDialog({ mode, onClose, onCommand, project }) {
             <section className="project-dialog-section danger-zone">
               <h3>Project lifecycle</h3>
               <div className="danger-action"><div><strong>Archive project</strong><span>Hide it from the project switcher without deleting data.</span></div><Button busy={busyAction === "archive"} disabled={busy} icon={Archive} onClick={() => confirmArchive ? void run({ type: "archive", projectId: project.id, archived: true }, true) : setConfirmArchive(true)}>{confirmArchive ? "Confirm archive" : "Archive"}</Button></div>
-              <div className="danger-action"><div><strong>Delete permanently</strong><span>Enter <b>{project.name}</b> to remove definitions and evidence.</span></div><div className="delete-confirm"><input aria-label="Confirm project name" disabled={busy} placeholder={project.name} value={deleteName} onChange={(event) => setDeleteName(event.target.value)} /><Button busy={busyAction === "delete"} disabled={busy || deleteName !== project.name} icon={Trash2} onClick={() => void run({ type: "delete", projectId: project.id, confirmationName: deleteName }, true)}>Delete</Button></div></div>
+              <div className="danger-action"><div><strong>Delete permanently</strong><span>Enter <b>{project.name}</b> to continue to the final confirmation.</span></div><div className="delete-confirm"><input aria-label="Confirm project name" disabled={busy} placeholder={project.name} value={deleteName} onChange={(event) => setDeleteName(event.target.value)} /><Button disabled={busy || deleteName !== project.name} icon={Trash2} onClick={() => setConfirmDelete(true)} ref={deleteTriggerRef}>Delete</Button></div></div>
             </section>
           </>
         ) : null}
         {error ? <p aria-live="assertive" className="form-error">{error}</p> : null}
       </section>
+      {confirmDelete ? <section aria-labelledby="delete-project-title" aria-modal="true" className="destructive-confirm" ref={deleteConfirmationRef} role="alertdialog"><div className="destructive-confirm__icon"><Trash2 aria-hidden="true" size={22} /></div><h3 id="delete-project-title">Delete {project.name} permanently?</h3><p>This cannot be undone. Veyra will permanently remove this project’s definitions, run history, environments, variables and evidence.</p><div className="destructive-confirm__actions"><Button autoFocus disabled={busy} onClick={cancelDelete} variant="secondary">Cancel</Button><Button busy={busyAction === "delete"} className="button--danger" disabled={busy} onClick={() => void run({ type: "delete", projectId: project.id, confirmationName: deleteName }, true)}>Delete project permanently</Button></div></section> : null}
     </div>
   );
 }

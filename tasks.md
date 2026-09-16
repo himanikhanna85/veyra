@@ -430,6 +430,8 @@ No task is currently approved and queued.
 
 ## Done
 
+- [x] B01 — Added a final irreversible-action confirmation modal after exact-name project deletion confirmation (`FR03.06`; `design_specification.md`).
+- [x] B02 — Reactivated an archived project when its valid backup is restored into the same workspace while retaining active-duplicate protection (`FR02.06`; `FR03.06`).
 - [x] D09 — Closed the E03 fixed-diff design/spec review: truthful persisted Overview details, first-project/loading/error states, status icon-labels, modal focus containment and mutation busy states (`FR03.01`–`FR03.06`; `SCR-OVERVIEW`; `design_specification.md`).
 - [x] E03.T01 — Created projects with required identity and a default active environment (`P0`; `FR03.01`).
 - [x] E03.T02 — Added safe project name and application URL editing (`P0`; `FR03.02`).

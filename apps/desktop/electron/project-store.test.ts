@@ -67,6 +67,19 @@ describe("ProjectStore", () => {
     await expect(readdir(join(root, "evidence", "shop"))).rejects.toThrow();
   });
 
+  it("reactivates an archived project when its valid backup is restored", async () => {
+    const { root, store } = await createStore();
+    store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+    store.setProjectArchived("shop", true);
+    const backupPath = join(root, "archived-shop.veyra-project.json");
+    await store.exportProject("shop", backupPath);
+
+    const restored = await store.restoreProject(backupPath);
+
+    expect(restored.archivedAt).toBeNull();
+    expect(store.listProjectSummaries()).toEqual([expect.objectContaining({ id: "shop", archived: false })]);
+  });
+
   it("builds project overview health from persisted definitions and runs", async () => {
     const { store } = await createStore();
     store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });

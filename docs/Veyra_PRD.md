@@ -516,11 +516,15 @@ health data.
 
 Archive is reversible at the storage layer and hides the project from the
 normal switcher. Permanent deletion requires the exact project name and also
-removes its evidence directory. Exact-name confirmation was selected over a
-generic warning because it proves which project the user intends to remove.
+removes its evidence directory. Exact-name entry is an identity gate, followed
+by a separate irreversible-action confirmation modal; this prevents a single
+enabled click from destroying the project while still proving which project the
+user intends to remove.
 Exports now include all environments and their non-secret variables in backup
 format version 2; restore remains compatible with version 1 so the E03 schema
-does not make existing E02 backups unusable.
+does not make existing E02 backups unusable. Restoring a valid backup whose
+identity matches an archived local project reactivates and selects that project;
+an active same-identity duplicate remains blocked to prevent silent overwrite.
 
 ## E04 --- Secrets & Sensitive Data
 

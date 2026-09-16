@@ -36,6 +36,11 @@ Structured rows are restored transactionally into SQLite; evidence is written
 back into the separate evidence directory. A failed restore rolls back rows and
 removes its partially restored evidence directory.
 
+An archived same-identity local project is the intentional exception to the
+duplicate rule: after the backup passes full validation, restore reactivates
+that retained project and makes it available in the normal switcher. An active
+same-identity project is still rejected and is never overwritten silently.
+
 Version 2 added complete environment portability for E03. Restore continues to
 accept version 1 documents; they are imported with their legacy single default
 environment.

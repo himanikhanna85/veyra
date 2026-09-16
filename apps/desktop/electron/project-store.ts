@@ -433,7 +433,14 @@ export class ProjectStore {
     if (document.format !== "veyra-project" || ![1, 2].includes(document.version ?? 0) || !document.payload) throw new Error("Unsupported Veyra project backup");
     if (checksum(document.payload as BackupPayload) !== document.checksum) throw new Error("Project backup checksum is invalid");
     const payload = validateBackupPayload(document.payload, document.version === 2);
-    if (this.getProject(payload.project.id)) throw new Error("Project already exists");
+    const existingProject = this.getProject(payload.project.id);
+    if (existingProject) {
+      if (existingProject.archivedAt) {
+        this.setProjectArchived(existingProject.id, false);
+        return this.getProject(existingProject.id)!;
+      }
+      throw new Error("Project already exists");
+    }
     this.#database.exec("BEGIN IMMEDIATE");
     try {
       this.saveProject(payload.project);
