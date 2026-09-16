@@ -15,6 +15,8 @@ import { IPC_CHANNELS } from "./ipc-contract";
 import { registerDesktopIpc } from "./ipc-main";
 import { DesktopLifecycle } from "./lifecycle";
 import { ProjectStore } from "./project-store";
+import { createElectronSecretCipher } from "./electron-secret-cipher";
+import { SecretVault } from "./secret-vault";
 import {
   isTrustedRendererSender,
   selectRendererUrl,
@@ -55,6 +57,7 @@ let shutdownComplete = false;
 let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
 let projectStore: ProjectStore | undefined;
+let secretVault: SecretVault | undefined;
 
 const windowManager = new DesktopWindowManager({
   appIconPath,
@@ -115,6 +118,7 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "getStorageOverview",
         "onLifecycleChanged",
         "restoreProjectBackup",
+        "setSensitiveEntry",
       ]);
   if (!valid) throw new Error(`Desktop smoke check failed: ${JSON.stringify(smoke)}`);
   console.log(`VEYRA_SMOKE_READY ${JSON.stringify(smoke)}`);
@@ -145,6 +149,7 @@ async function startApplication(): Promise<void> {
   });
   await lifecycle.start();
   projectStore = new ProjectStore(join(app.getPath("userData"), "projects"));
+  secretVault = new SecretVault(join(app.getPath("userData"), "secrets"), createElectronSecretCipher());
 
   const getProjectWorkspace = (requestedProjectId?: string) => {
     if (!projectStore) throw new Error("Project storage is not ready");
@@ -152,7 +157,11 @@ async function startApplication(): Promise<void> {
     const projectId = requestedProjectId && projects.some((project) => project.id === requestedProjectId) ? requestedProjectId : projects[0]?.id;
     return {
       projects,
-      activeProject: projectId ? projectStore.getProjectDetail(projectId) ?? null : null,
+      activeProject: projectId ? (() => {
+        const detail = projectStore!.getProjectDetail(projectId);
+        if (!detail) return null;
+        return { ...detail, secretReferences: detail.secretReferences.map((reference) => ({ ...reference, hasValue: secretVault?.status(projectId, reference.id).configured ?? false })) };
+      })() : null,
       overview: projectId ? projectStore.getProjectOverview(projectId) : null,
     };
   };
@@ -227,10 +236,20 @@ async function startApplication(): Promise<void> {
         case "save-variable": projectStore.saveEnvironmentVariable(command.projectId, command.environmentId, { key: command.key, value: command.value }); return { projectId: command.projectId };
         case "delete-variable": projectStore.deleteEnvironmentVariable(command.projectId, command.environmentId, command.key); return { projectId: command.projectId };
         case "save-secret-reference": projectStore.saveSecretReference(command.projectId, { id: command.id, description: command.description }); return { projectId: command.projectId };
-        case "delete-secret-reference": projectStore.deleteSecretReference(command.projectId, command.id); return { projectId: command.projectId };
+        case "delete-secret-reference": secretVault?.delete(command.projectId, command.id); projectStore.deleteSecretReference(command.projectId, command.id); return { projectId: command.projectId };
+        case "set-secret-value": {
+          if (!projectStore.getProjectDetail(command.projectId)?.secretReferences.some((reference) => reference.id === command.id)) throw new Error("Secret reference not found");
+          if (!secretVault) throw new Error("Secret vault is not ready");
+          secretVault.set(command.projectId, command.id, command.value);
+          return { projectId: command.projectId };
+        }
+        case "delete-secret-value": secretVault?.delete(command.projectId, command.id); return { projectId: command.projectId };
         case "archive": projectStore.setProjectArchived(command.projectId, command.archived); return { projectId: command.archived ? null : command.projectId };
-        case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
+        case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); secretVault?.deleteProject(command.projectId); return { projectId: null };
       }
+    },
+    setSensitiveEntry: (active) => {
+      windowManager.currentWindow?.setContentProtection?.(active);
     },
     ipcMain,
     isTrustedSender: (candidateUrl) =>

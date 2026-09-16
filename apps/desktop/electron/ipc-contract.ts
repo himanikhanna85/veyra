@@ -7,6 +7,7 @@ export const IPC_CHANNELS = Object.freeze({
   restoreProjectBackup: "veyra:desktop:restore-project-backup",
   getProjectWorkspace: "veyra:desktop:get-project-workspace",
   applyProjectCommand: "veyra:desktop:apply-project-command",
+  setSensitiveEntry: "veyra:desktop:set-sensitive-entry",
   lifecycleChanged: "veyra:desktop:lifecycle-changed",
 } as const);
 
@@ -47,7 +48,7 @@ export interface EvidenceCleanupResult { deletedBytes: number; deletedFiles: num
 export type BackupDialogResult = { canceled: true } | { canceled: false; fileName: string; projectId: string };
 export interface EnvironmentVariableDto { key: string; value: string }
 export interface ProjectEnvironmentDto { baseUrl: string; id: string; isActive: boolean; name: string; variables: EnvironmentVariableDto[] }
-export interface SecretReferenceDto { description: string; hasValue: false; id: string }
+export interface SecretReferenceDto { description: string; hasValue: boolean; id: string }
 export interface ProjectDetailDto { applicationUrl: string; archived: boolean; environmentName: string; environments: ProjectEnvironmentDto[]; id: string; name: string; secretReferences: SecretReferenceDto[] }
 export interface ProjectSummaryDto { archived: boolean; environmentName: string; id: string; name: string }
 export interface ProjectOverviewDto { latestOutcome: string | null; latestRunAt: string | null; moduleItems: Array<{ id: string; name: string }>; modules: number; outcomeCounts: Record<string, number>; passRate: number | null; recentRunItems: Array<{ completedAt: string; id: string; outcome: string }>; recentRuns: number; tests: number }
@@ -61,6 +62,8 @@ export type ProjectCommand =
   | { type: "delete-variable"; projectId: string; environmentId: string; key: string }
   | { type: "save-secret-reference"; projectId: string; id: string; description?: string }
   | { type: "delete-secret-reference"; projectId: string; id: string }
+  | { type: "set-secret-value"; projectId: string; id: string; value: string }
+  | { type: "delete-secret-value"; projectId: string; id: string }
   | { type: "archive"; projectId: string; archived: boolean }
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
@@ -74,6 +77,7 @@ export interface VeyraDesktopApi {
   restoreProjectBackup(): Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): Promise<ProjectCommandResult>;
+  setSensitiveEntry(active: boolean): Promise<void>;
   onLifecycleChanged(listener: (snapshot: LifecycleSnapshot) => void): () => void;
 }
 
@@ -97,6 +101,7 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     restoreProjectBackup: () => ipc.invoke(IPC_CHANNELS.restoreProjectBackup) as Promise<BackupDialogResult>,
     getProjectWorkspace: (projectId?: string) => ipc.invoke(IPC_CHANNELS.getProjectWorkspace, { projectId }) as Promise<ProjectWorkspace>,
     applyProjectCommand: (command: ProjectCommand) => ipc.invoke(IPC_CHANNELS.applyProjectCommand, command) as Promise<ProjectCommandResult>,
+    setSensitiveEntry: (active: boolean) => ipc.invoke(IPC_CHANNELS.setSensitiveEntry, { active }) as Promise<void>,
     onLifecycleChanged: (listener: (snapshot: LifecycleSnapshot) => void) => {
       const handleLifecycleChange = (_event: unknown, payload: unknown) => {
         listener(payload as LifecycleSnapshot);

@@ -23,6 +23,7 @@ interface DesktopIpcDependencies {
   restoreProjectBackup(): BackupDialogResult | Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): ProjectWorkspace | Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): ProjectCommandResult | Promise<ProjectCommandResult>;
+  setSensitiveEntry(active: boolean): void | Promise<void>;
   ipcMain: IpcMainLike;
   isTrustedSender(url: string): boolean;
 }
@@ -35,7 +36,8 @@ export function registerDesktopIpc({
   exportProjectBackup,
   restoreProjectBackup,
   getProjectWorkspace,
-  applyProjectCommand,
+    applyProjectCommand,
+    setSensitiveEntry,
   ipcMain,
   isTrustedSender,
 }: DesktopIpcDependencies): () => void {
@@ -86,6 +88,8 @@ export function registerDesktopIpc({
       case "delete-variable": return { type: "delete-variable", projectId: validateProjectId(value.projectId), environmentId: validateProjectId(value.environmentId), key: requiredString(value.key, "variable name") };
       case "save-secret-reference": return { type: "save-secret-reference", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier"), description: value.description == null ? undefined : requiredString(value.description, "secret description") };
       case "delete-secret-reference": return { type: "delete-secret-reference", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier") };
+      case "set-secret-value": return { type: "set-secret-value", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier"), value: requiredString(value.value, "secret value") };
+      case "delete-secret-value": return { type: "delete-secret-value", projectId: validateProjectId(value.projectId), id: requiredString(value.id, "secret identifier") };
       case "archive": {
         if (typeof value.archived !== "boolean") throw new Error("Invalid archive state");
         return { type: "archive", projectId: validateProjectId(value.projectId), archived: value.archived };
@@ -114,6 +118,12 @@ export function registerDesktopIpc({
   ipcMain.handle(IPC_CHANNELS.applyProjectCommand, async (event, payload) => {
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return applyProjectCommand(validateProjectCommand(payload));
+  });
+  ipcMain.handle(IPC_CHANNELS.setSensitiveEntry, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    const active = (payload as Record<string, unknown> | null)?.active;
+    if (typeof active !== "boolean") throw new Error("Invalid sensitive-entry state");
+    await setSensitiveEntry(active);
   });
 
   return () => {
