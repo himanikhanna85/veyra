@@ -34,6 +34,23 @@ management are required by the PRD but are not separate approved mockups. They
 must reuse the shell, tokens and components below; their detailed layouts are
 implementation tasks and may not introduce another visual language.
 
+### Application identity asset
+
+- The approved desktop mark is `docs/brand/veyra-app-icon-source.png`: a
+  2000 × 2000 transparent RGBA source using navigation ink and action orange.
+- `apps/desktop/build/icon.png` is its deterministic 1024 × 1024 packaging
+  derivative and must retain transparency and the source safe area.
+- Use it for the macOS application/Dock icon, Windows executable/installer icon
+  and development desktop window. Platform-native masks and scaling are allowed.
+- Do not crop or redraw the mark, add a wordmark/background, or pre-round the
+  corners. Changes require a new approved source and a DEC update.
+- In-product branding uses the separate approved sources
+  `docs/brand/veyra_tr_icon.png` and `docs/brand/veyra_rectlogo.png`. In the
+  dark sidebar, show the transparent mark inside a 28 × 28 px white tile with
+  7 px radius, followed by the rectlogo's exact wordmark artwork at 17 px high.
+  Do not substitute a font-rendered label or generic symbol. Expose the complete
+  lockup as one accessible image named “Veyra”; its child artwork is decorative.
+
 ## 1. Product Design Principles
 
 1. **Business language first.** Primary UI says “Teach”, “Add to cart”,
@@ -86,7 +103,7 @@ implementation tasks and may not introduce another visual language.
 - Header: 64 px high, white, 1 px bottom border `#E2E6EA`, 32 px horizontal
   padding.
 - Main content: flexes to remaining width; typical page padding 36–40 px.
-- Sidebar order: Veyra logo, project switcher, Overview, Teach, Tests, Modules,
+- Sidebar order: approved Veyra mark-and-wordmark lockup, project switcher, Overview, Teach, Tests, Modules,
   Runs, Data; Settings, Help and profile are anchored at the bottom.
 - Header order: project/page breadcrumb, 360 px maximum command search,
   environment pill, local-run pill, notification control and avatar.
@@ -99,9 +116,62 @@ implementation tasks and may not introduce another visual language.
   the sidebar edge.
 - Disabled: `#4A5465`, no pointer affordance.
 - Keyboard focus: global blue focus ring; never rely on selected fill alone.
+
+### 3.3 Data & storage support screen
+
+The Data destination owns local storage inspection and project portability in
+addition to later dataset work. Its E02 empty/management state uses the global
+shell and standard components; it may not introduce a second visual language.
+
+- Page heading: uppercase `Local workspace` eyebrow, `Data & storage` title and
+  one sentence explaining that structured records and evidence are separate.
+- Header actions: blue `Restore project`, then secondary `Refresh`. Use the
+  shared button icon slot with a 7 px icon-to-label gap. Both are disabled
+  outside the desktop runtime with an explanatory neutral notice.
+- Summary: three equal white 18 px-radius cards for Structured data, Evidence
+  (including file count) and Total local usage.
+- Projects: one bordered white panel. Each row shows project name, evidence
+  bytes/file count, secondary Export and secondary Clean evidence controls.
+- Evidence cleanup is destructive and therefore requires a second deliberate
+  click labelled `Confirm clean`. Before confirmation, announce that only
+  evidence older than 30 days is removed and definitions/run history remain.
+- Restore/export use native file pickers. The renderer never displays or owns a
+  local filesystem path. Results and cleanup totals are announced in an
+  `aria-live="polite"` region.
 - Counts are 11.5 px tabular labels aligned to the trailing edge.
 
-### 3.3 Global search and context controls
+### 3.4 Project switcher and settings overlay
+
+- The sidebar switcher lists every non-archived project, marks the current
+  project, and ends with **Manage current project** and **Create project**.
+- With no projects, the switcher reads **Create project** and Overview shows a
+  centered first-project state rather than sample metrics.
+- Create is a focused modal requiring project name, application URL and first
+  environment name. The blue confirm action remains disabled by native form
+  validation until required values are present.
+- Settings uses the same 18 px white modal surface. It supports project name
+  and URL editing, an environment list with one explicit Active state, adding
+  named environments, and environment-scoped non-secret key/value rows.
+- Project Settings includes a separate **Secret references** section below
+  environment variables. A reference has a logical identifier and optional
+  description, never a plaintext value in E04.T01. Each row shows a lock icon,
+  identifier, description and the neutral status **Value not configured**.
+  Creation accepts identifiers matching `letter + letters/numbers/underscore`
+  and explains that OS-secured value entry arrives in the next secret-storage
+  slice. Deletion removes only reference metadata and uses an explicit labelled
+  control with a 40 px hit area.
+- Switching environment immediately updates the sidebar/header context. Project
+  overview values always come from the selected project's persisted records.
+- Archive requires a second click labelled **Confirm archive**. Permanent
+  deletion remains disabled until the exact project name is entered. Selecting
+  Delete then opens a distinct alert dialog naming the project, explaining that
+  definitions, run history, environments, variables and evidence are removed
+  irreversibly. Cancel receives default focus; only **Delete project
+  permanently** commits the deletion.
+- Escape closes the overlay when it is not processing a change; the close
+  control has an explicit accessible label and errors are announced.
+
+### 3.5 Global search and context controls
 
 - Search placeholder: “Search tests, modules, runs”; show `⌘K` on macOS and
   `Ctrl K` on Windows.
@@ -360,7 +430,8 @@ separate duplicate tab stops.
 #### 13. Edge Cases & States
 
 - Empty project: replace metrics/work panels with an Instrument Serif welcome,
-  short explanation and orange Teach first workflow.
+  short explanation and orange Teach first workflow. With no project at all,
+  use “Create a project to begin” and a single orange Create project action.
 - No recent run: neutral empty panel with Run a test.
 - All passing: keep Needs attention collapsed/empty; do not manufacture alerts.
 - Loading: stable card skeletons; error: inline retry with diagnostic link.

@@ -9,42 +9,20 @@ Done = completed and verified/documented.
 
 ## Pending
 
-- [ ] D05 — Apply the approved Veyra mark as the macOS and Windows application/package icon (`DEC-22`, `FR22.01`; `design_specification.md`).
-
-## Not Started
-
-### M01 — Desktop Foundation & Persistence
-
-#### E02 — Local Persistence & Project Lifecycle
-
-- [ ] E02.T01 — Persist structured project data locally (`P0`; `FR02.01`).
-- [ ] E02.T02 — Store evidence separately from structured records (`P0`; `FR02.02`).
-- [ ] E02.T03 — Implement versioned, recoverable database migrations (`P0`; `FR02.03`).
-- [ ] E02.T04 — Preserve historical run integrity across edits (`P0`; `FR02.04`).
-- [ ] E02.T05 — Export a complete local project backup (`P1`; `FR02.05`).
-- [ ] E02.T06 — Restore/import a validated project backup (`P1`; `FR02.06`).
-- [ ] E02.T07 — Show and manage local storage usage (`P1`; `FR02.07`).
-
-### M02 — Projects, Environments & Secrets
-
-#### E03 — Projects & Environments
-
-- [ ] E03.T01 — Create a project with required identity and defaults (`P0`; `FR03.01`).
-- [ ] E03.T02 — Edit project metadata safely (`P0`; `FR03.02`).
-- [ ] E03.T03 — Create and select named project environments (`P0`; `FR03.03`).
-- [ ] E03.T04 — Manage environment-scoped variables (`P0`; `FR03.04`).
-- [ ] E03.T05 — Build the project overview and health summary (`P0`; `FR03.05`; `SCR-OVERVIEW`).
-- [ ] E03.T06 — Archive and intentionally delete projects (`P1`; `FR03.06`).
-
-#### E04 — Secrets & Sensitive Data (M02/M14)
-
-- [ ] E04.T01 — Create named secret references without exposing values (`P0`; `FR04.01`).
 - [ ] E04.T02 — Store secret values in the operating-system secure store (`P0`; `FR04.02`).
 - [ ] E04.T03 — Resolve secret references only at authorized runtime boundaries (`P0`; `FR04.03`).
 - [ ] E04.T04 — Mask secret values throughout product UI (`P0`; `FR04.04`).
 - [ ] E04.T05 — Redact secrets from reports and logs (`P0`; `FR04.05`).
 - [ ] E04.T06 — Redact secrets before any AI request (`P0`; `FR04.06`).
 - [ ] E04.T07 — Protect sensitive evidence at rest and on access (`P1`; `FR04.07`).
+
+## Not Started
+
+### M01 — Desktop Foundation & Persistence
+
+### M02 — Projects, Environments & Secrets
+
+#### E04 — Secrets & Sensitive Data (M02/M14)
 
 ### M03 — Controlled Browser & Teach
 
@@ -449,6 +427,27 @@ Done = completed and verified/documented.
 
 ## Done
 
+- [x] E04.T01 — Added project-scoped named secret-reference metadata, value-free typed IPC/UI, and portable value-free backup/restore (`P0`; `FR04.01`).
+- [x] B01 — Added a final irreversible-action confirmation modal after exact-name project deletion confirmation (`FR03.06`; `design_specification.md`).
+- [x] B02 — Reactivated an archived project when its valid backup is restored into the same workspace while retaining active-duplicate protection (`FR02.06`; `FR03.06`).
+- [x] D09 — Closed the E03 fixed-diff design/spec review: truthful persisted Overview details, first-project/loading/error states, status icon-labels, modal focus containment and mutation busy states (`FR03.01`–`FR03.06`; `SCR-OVERVIEW`; `design_specification.md`).
+- [x] E03.T01 — Created projects with required identity and a default active environment (`P0`; `FR03.01`).
+- [x] E03.T02 — Added safe project name and application URL editing (`P0`; `FR03.02`).
+- [x] E03.T03 — Added named multi-environment creation and active-environment selection (`P0`; `FR03.03`).
+- [x] E03.T04 — Added environment-scoped non-secret variable management and portable backup (`P0`; `FR03.04`).
+- [x] E03.T05 — Connected the project switcher and Overview to persisted tests, modules, recent outcomes, last-run and seven-day health data, including empty/loading/error states (`P0`; `FR03.05`; `SCR-OVERVIEW`).
+- [x] E03.T06 — Added two-step archive and exact-name permanent deletion (`P1`; `FR03.06`).
+- [x] D08 — Corrected icon-to-label spacing in the Data screen Restore project, Refresh, Export and Clean Evidence actions (`DEC-21`; `design_specification.md`; `design-qa.md`).
+- [x] D07 — Simplified E02 testing to one repository-root command with visible root-level test artifacts and plain-language output (`FR02.01`–`FR02.07`; `commands.md`).
+- [x] E02.T01 — Persisted structured project data locally in versioned SQLite storage (`P0`; `FR02.01`).
+- [x] E02.T02 — Stored screenshots/traces/reports in a separate evidence filesystem tree (`P0`; `FR02.02`).
+- [x] E02.T03 — Implemented transactional versioned migrations with preserved-database failure handling (`P0`; `FR02.03`).
+- [x] E02.T04 — Preserved completed-run meaning with immutable definition snapshots (`P0`; `FR02.04`).
+- [x] E02.T05 — Exported complete checksummed project backups in the documented Veyra format (`P1`; `FR02.05`).
+- [x] E02.T06 — Restored validated backups transactionally with partial-evidence cleanup (`P1`; `FR02.06`).
+- [x] E02.T07 — Added local storage inspection, native backup/restore and two-step old-evidence cleanup in Data (`P1`; `FR02.07`).
+- [x] D06 — Replaced the generic sidebar lockup with the approved transparent Veyra mark and exact rectlogo-derived wordmark artwork (`DEC-23`, `SCR-OVERVIEW`; `design_specification.md`; `design-qa.md`).
+- [x] D05 — Applied and package-verified the approved Veyra mark for the development window, macOS bundle/DMG and Windows executable/installer (`DEC-22`, `FR22.01`; `design_specification.md`).
 - [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).
 - [x] E01.T02 — Enforced sandboxed, context-isolated, Node-free renderer execution (`P0`; `DEC-01`, `FR01.02`).
 - [x] E01.T03 — Added the explicit typed preload/main API and event boundary (`P0`; `DEC-01`, `FR01.03`).

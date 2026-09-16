@@ -18,6 +18,7 @@
     "typecheck": "tsc -p tsconfig.electron.json --noEmit",
     "start:desktop": "electron .",
     "smoke:desktop": "npm run build && node scripts/smoke-electron.mjs",
+    "demo:e02": "tsc -p tsconfig.electron.json && node --no-warnings scripts/e02-demo.mjs",
     "package:dir": "npm run build && electron-builder --dir --mac --arm64",
     "package:mac": "npm run build && electron-builder --mac dmg zip --arm64 --x64",
     "package:win": "npm run build && electron-builder --win nsis --x64",

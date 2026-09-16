@@ -1,12 +1,15 @@
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "./App.jsx";
 
 describe("Veyra desktop foundation", () => {
+  afterEach(() => { delete window.veyraDesktop; });
+
   it("opens on the approved Overview shell", () => {
     render(<App />);
 
+    expect(screen.getByRole("img", { name: "Veyra" })).toBeVisible();
     expect(screen.getByRole("navigation", { name: "Primary" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "Good morning, Himani" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Overview" })).toHaveAttribute(
@@ -89,6 +92,109 @@ describe("Veyra desktop foundation", () => {
 
     await user.click(screen.getByRole("button", { name: "Overview" }));
     await user.click(screen.getByRole("button", { name: "Add dataset" }));
-    expect(screen.getByRole("heading", { level: 1, name: "Data" })).toBeVisible();
+    expect(screen.getByRole("heading", { level: 1, name: "Data & storage" })).toBeVisible();
+  });
+
+  it("shows local structured and evidence usage in Data", async () => {
+    const user = userEvent.setup();
+    window.veyraDesktop = {
+      getStorageOverview: async () => ({ databaseBytes: 4096, evidenceBytes: 2048, evidenceFiles: 2, totalBytes: 6144, projects: [] }),
+    };
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Data" }));
+    expect(await screen.findByRole("heading", { name: "Data & storage" })).toBeVisible();
+    expect(await screen.findByText("4.0 KB")).toBeVisible();
+    expect(screen.getByText("2 files")).toBeVisible();
+  });
+
+  it("creates the first desktop project and opens its persisted overview", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }] };
+    const getProjectWorkspace = vi.fn()
+      .mockResolvedValueOnce({ projects: [], activeProject: null, overview: null })
+      .mockResolvedValue({ projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, passRate: null } });
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: "shop" });
+    window.veyraDesktop = { getProjectWorkspace, applyProjectCommand };
+
+    render(<App />);
+    expect(await screen.findByRole("heading", { name: "Create a project to begin" })).toBeVisible();
+    await user.click(within(screen.getByRole("main")).getByRole("button", { name: "Create project" }));
+    const dialog = screen.getByRole("dialog", { name: "Create project" });
+    expect(within(dialog).getByRole("button", { name: "Create project" })).toBeDisabled();
+    await user.type(within(dialog).getByLabelText("Project name"), "Shop QA");
+    await user.clear(within(dialog).getByLabelText("Application URL"));
+    await user.type(within(dialog).getByLabelText("Application URL"), "https://shop.test");
+    await user.click(within(dialog).getByRole("button", { name: "Create project" }));
+
+    expect(applyProjectCommand).toHaveBeenCalledWith({ type: "create", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging" });
+    expect(await screen.findByRole("heading", { name: "Good morning, Himani" })).toBeVisible();
+    expect(screen.getAllByText("Shop QA").length).toBeGreaterThan(0);
+  });
+
+  it("manages a named environment through the desktop project settings", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, passRate: null } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: "shop" });
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValue(workspace), applyProjectCommand };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Good morning, Himani" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    const dialog = screen.getByRole("dialog", { name: "Shop QA" });
+    await user.type(within(dialog).getByLabelText("Environment name"), "Production");
+    await user.clear(within(dialog).getByLabelText("Environment base URL"));
+    await user.type(within(dialog).getByLabelText("Environment base URL"), "https://www.shop.test");
+    await user.click(within(dialog).getByRole("button", { name: "Add" }));
+
+    await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "save-environment", projectId: "shop", environment: { name: "Production", baseUrl: "https://www.shop.test" } }));
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog", { name: "Shop QA" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Project settings" })).toHaveFocus();
+  });
+
+  it("creates a named secret reference without asking for a secret value", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: "shop" });
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValue(workspace), applyProjectCommand };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    const dialog = screen.getByRole("dialog", { name: "Shop QA" });
+    expect(within(dialog).queryByLabelText(/secret value/i)).not.toBeInTheDocument();
+    await user.type(within(dialog).getByLabelText("Secret identifier"), "shop_password");
+    await user.type(within(dialog).getByLabelText(/Secret description/), "Test shopper password");
+    await user.click(within(dialog).getByRole("button", { name: "Add secret reference" }));
+
+    await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Test shopper password" }));
+  });
+
+  it("requires a final irreversible confirmation before deleting a project", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const applyProjectCommand = vi.fn().mockResolvedValue({ projectId: null });
+    window.veyraDesktop = { getProjectWorkspace: vi.fn().mockResolvedValue(workspace), applyProjectCommand };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Project settings" }));
+    await user.type(screen.getByLabelText("Confirm project name"), "Shop QA");
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(applyProjectCommand).not.toHaveBeenCalled();
+    let confirmation = screen.getByRole("alertdialog", { name: "Delete Shop QA permanently?" });
+    expect(within(confirmation).getByText(/cannot be undone/i)).toBeVisible();
+    await user.click(within(confirmation).getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("alertdialog", { name: "Delete Shop QA permanently?" })).not.toBeInTheDocument();
+    expect(applyProjectCommand).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    confirmation = screen.getByRole("alertdialog", { name: "Delete Shop QA permanently?" });
+    await user.click(within(confirmation).getByRole("button", { name: "Delete project permanently" }));
+    await waitFor(() => expect(applyProjectCommand).toHaveBeenCalledWith({ type: "delete", projectId: "shop", confirmationName: "Shop QA" }));
   });
 });

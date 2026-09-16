@@ -24,23 +24,31 @@
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   padding: 0 20px 20px;
-  color: #fff;
-  font-size: 16px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
 }
 
 .brand-mark {
   display: grid;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
   flex: none;
   place-items: center;
-  border-radius: 6px;
-  background: var(--color-blue);
-  color: #fff;
+  overflow: hidden;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.brand-mark img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.brand-wordmark {
+  display: block;
+  width: auto;
+  height: 17px;
 }
 
 .project-switcher-wrap,

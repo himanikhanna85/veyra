@@ -1,0 +1,9 @@
+{
+  "name": "veyra-workspace",
+  "private": true,
+  "scripts": {
+    "test:e02": "cd apps/desktop && npm run demo:e02",
+    "build": "cd apps/desktop && npm run build",
+    "start:desktop": "cd apps/desktop && npm run build && npm run start:desktop"
+  }
+}

@@ -8,7 +8,7 @@ import {
 
 describe("Veyra desktop preload interface", () => {
   it("exposes only allow-listed typed calls and lifecycle subscription", async () => {
-    const invoke = vi.fn(async (channel: string) => ({ channel }));
+    const invoke = vi.fn(async (channel: string, ...args: unknown[]) => ({ channel, args }));
     const listeners = new Map<string, (...args: unknown[]) => void>();
     const removeListener = vi.fn((channel: string) => listeners.delete(channel));
     const ipc: RendererIpc = {
@@ -24,14 +24,32 @@ describe("Veyra desktop preload interface", () => {
     expect(Object.keys(api)).toEqual([
       "getAppInfo",
       "getLifecycleSnapshot",
+      "getStorageOverview",
+      "cleanProjectEvidence",
+      "exportProjectBackup",
+      "restoreProjectBackup",
+      "getProjectWorkspace",
+      "applyProjectCommand",
       "onLifecycleChanged",
     ]);
 
     await api.getAppInfo();
     await api.getLifecycleSnapshot();
+    await api.getStorageOverview();
+    await api.cleanProjectEvidence("project-1", "2025-01-01T00:00:00.000Z");
+    await api.exportProjectBackup("project-1");
+    await api.restoreProjectBackup();
+    await api.getProjectWorkspace("project-1");
+    await api.applyProjectCommand({ type: "archive", projectId: "project-1", archived: true });
     expect(invoke.mock.calls).toEqual([
       [IPC_CHANNELS.getAppInfo],
       [IPC_CHANNELS.getLifecycleSnapshot],
+      [IPC_CHANNELS.getStorageOverview],
+      [IPC_CHANNELS.cleanProjectEvidence, { projectId: "project-1", olderThan: "2025-01-01T00:00:00.000Z" }],
+      [IPC_CHANNELS.exportProjectBackup, { projectId: "project-1" }],
+      [IPC_CHANNELS.restoreProjectBackup],
+      [IPC_CHANNELS.getProjectWorkspace, { projectId: "project-1" }],
+      [IPC_CHANNELS.applyProjectCommand, { type: "archive", projectId: "project-1", archived: true }],
     ]);
 
     const listener = vi.fn();
@@ -52,4 +70,3 @@ describe("Veyra desktop preload interface", () => {
     );
   });
 });
-

@@ -56,6 +56,16 @@ operation IDs for recovery, then permits Electron to quit. An unclean previous
 session is surfaced as pending recovery on the next launch. E05/E13 workers
 must use this registry rather than adding independent quit hooks.
 
+## Project persistence
+
+`electron/project-store.ts` is the E02 persistence module and the only seam for
+project-domain storage. It owns versioned SQLite migrations, immutable
+completed-run snapshots, the external evidence tree, storage accounting,
+cleanup, and the checksummed `.veyra-project.json` backup format. Renderer code
+must use the named preload methods; it must never import SQLite, receive local
+filesystem paths, or access evidence directly. Restore must validate before
+commit and preserve the original database when opening or migration fails.
+
 ## Build outputs and platforms
 
 - `dist/client/` contains bundled renderer assets.
@@ -65,7 +75,8 @@ must use this registry rather than adding independent quit hooks.
 - Windows targets x64 (`NSIS`).
 - `.github/workflows/desktop-build.yml` repeats tests and packaging on native
   macOS and Windows runners.
+- `docs/brand/veyra-app-icon-source.png` is the approved lossless icon source;
+  `apps/desktop/build/icon.png` is the generated packaging/runtime derivative.
 
-E01 packages are deliberately unsigned and use Electron's default icon. Code
-signing, notarization, branded icons, auto-update and release-channel policy
-belong to E22 Commercial Hardening.
+E01 packages are deliberately unsigned. Code signing, notarization,
+auto-update and release-channel policy belong to E22 Commercial Hardening.

@@ -160,6 +160,36 @@ core Teach → Understanding → Test → Run → Result journey prevents later
 implementation from drifting back into generic grayscale tooling while still
 leaving non-representative PRD surfaces free to reuse the same system.
 
+## DEC-22 --- Approved desktop application mark
+
+The supplied transparent Veyra mark is the application identity asset for the
+macOS Dock/Finder bundle, Windows executable/installer and development window.
+The canonical 2000 × 2000 RGBA source lives at
+`docs/brand/veyra-app-icon-source.png`; packaging consumes the deterministic
+1024 × 1024 derivative at `apps/desktop/build/icon.png`.
+
+Reasoning: the mark uses the already-approved navigation ink and action-orange
+language, has sufficient transparent safe area for platform presentation and
+was explicitly supplied for this purpose. Keeping one lossless source and one
+generated packaging input prevents platform variants from drifting. Platform
+tools may scale or apply their native mask, but must not redraw, crop, add a
+wordmark or bake in rounded corners.
+
+## DEC-23 --- Approved in-product sidebar lockup
+
+The global sidebar uses the supplied transparent mark from
+`docs/brand/veyra_tr_icon.png` and the exact wordmark letterforms from
+`docs/brand/veyra_rectlogo.png`. The mark is presented on a compact white tile
+for contrast against the navigation-ink sidebar; the wordmark is extracted as
+a transparent light-on-ink asset rather than approximated with interface text.
+The previous blue tile, generic diamond and Inter-rendered “Veyra” label are
+retired.
+
+Reasoning: the two approved source files are the brand authority. Keeping the
+wordmark as artwork preserves its actual custom typography, while the neutral
+tile makes the predominantly dark transparent mark legible without recolouring
+or redrawing it. The lockup remains a single accessible image named “Veyra”.
+
 # 2. Product Vision and Thesis
 
 > **Veyra learns how an application behaves, converts human
@@ -374,8 +404,8 @@ persistence remains E02 scope because project records do not exist yet.
 
 E01 produces macOS Apple Silicon/Intel DMG and ZIP artifacts plus an x64
 Windows NSIS installer, with native macOS and Windows packaging configured in CI.
-The current artifacts are unsigned and use Electron's default icon. macOS code
-signing/notarization, Windows signing, branded icons and auto-update policy are
+The current artifacts are unsigned and use the approved Veyra application mark.
+macOS code signing/notarization, Windows signing and auto-update policy are
 commercial hardening work under E22. The Apple Silicon package was executed
 locally; Intel macOS and Windows artifacts require native target-host runtime
 validation before external distribution.
@@ -413,6 +443,31 @@ Restore a valid Veyra project export.
 
 Inspect/clean old evidence without deleting core definitions.
 
+### E02 implementation baseline --- 15 September 2026
+
+The shipped `ProjectStore` is the single persistence interface over a
+versioned local SQLite database and a separate filesystem evidence tree. It
+stores project definitions and immutable completed-run snapshots, performs
+transactional schema migration, and preserves an unreadable/future database
+rather than replacing it. Storage inspection and two-step age-based evidence
+cleanup are available from the Data screen through validated, allow-listed
+main/preload calls; cleanup never deletes definitions or run history.
+
+Project export and restore use the documented checksummed
+`.veyra-project.json` format in `docs/Veyra_Project_Backup_Format.md`. Native
+main-process file pickers keep paths out of the renderer. Restore validates the
+format version, checksum, identifiers, evidence paths/extensions and byte sizes,
+then commits structured rows transactionally and removes partial evidence on
+failure.
+
+E02 verification is intentionally exposed from the repository root as
+`npm run test:e02`. It writes only to the visible, ignored
+`e02-test-output/` folder and reports plain-language assertions for structured
+data, separate evidence, export/restore, historical integrity and cleanup.
+This root wrapper was chosen over requiring product stakeholders to navigate
+the nested desktop package or interpret raw database/test-runner output; the
+underlying module tests remain available for engineering diagnostics.
+
 ## E03 --- Projects & Environments
 
 **Module:** M02\
@@ -444,6 +499,33 @@ actions.
 
 Destructive project actions require confirmation.
 
+### E03 implementation baseline (2026-09-16)
+
+Projects, named environments and non-secret environment variables are stored
+in the versioned local project database and exposed to the sandboxed renderer
+only through the typed project-workspace command boundary. This keeps database
+ownership in Electron's main process while giving the UI one refreshable model
+for the switcher, active environment and overview.
+
+Each project always has exactly one active environment. Changing it updates the
+visible project context and effective application URL together, avoiding a
+split state where a displayed environment and execution URL disagree. The
+overview is derived from persisted definitions and immutable completed runs;
+when no records exist, it shows truthful zero/empty states rather than demo
+health data.
+
+Archive is reversible at the storage layer and hides the project from the
+normal switcher. Permanent deletion requires the exact project name and also
+removes its evidence directory. Exact-name entry is an identity gate, followed
+by a separate irreversible-action confirmation modal; this prevents a single
+enabled click from destroying the project while still proving which project the
+user intends to remove.
+Exports now include all environments and their non-secret variables in backup
+format version 2; restore remains compatible with version 1 so the E03 schema
+does not make existing E02 backups unusable. Restoring a valid backup whose
+identity matches an archived local project reactivates and selects that project;
+an active same-identity duplicate remains blocked to prevent silent overwrite.
+
 ## E04 --- Secrets & Sensitive Data
 
 **Module:** M02/M14\
@@ -452,6 +534,27 @@ Destructive project actions require confirmation.
 ### FR04.01 --- Secret creation \[P0\]
 
 Create named secret references.
+
+#### E04.T01 implementation baseline (2026-09-16)
+
+Secret creation starts with project-scoped logical metadata: an identifier and
+an optional description. Identifiers begin with a letter, contain only letters,
+numbers and underscores, and are unique within their project. Project Settings
+shows these references with an explicit `Value not configured` state and lets
+the user remove the metadata without ever asking for or displaying plaintext.
+
+The reference table deliberately has no value column, the renderer/main DTO has
+no value field, and the E04.T01 command boundary accepts no value argument. This
+is a structural safeguard rather than UI masking: a caller cannot accidentally
+persist a secret in SQLite through this feature. Actual values remain deferred
+to FR04.02, where they will be owned by an operating-system secure-store
+adapter. This split was chosen over temporary SQLite storage because migrating
+plaintext later would create avoidable leakage and cleanup risk.
+
+Project backup format version 3 includes identifiers and descriptions so the
+configuration map remains portable, but excludes values and secure-store
+locators because those are device-owned credentials. Restore stays compatible
+with versions 1 and 2, treating their absent reference list as empty.
 
 ### FR04.02 --- Secure storage \[P0\]
 
@@ -2114,7 +2217,7 @@ a ship report.
 
 OD-01 (desktop shell) was resolved by DEC-01 during the E01 bootstrap on
 2026-09-15. OD-02 (component system) and OD-03 (visual brand) were resolved by
-DEC-21 and `design_specification.md` on 2026-09-15.
+DEC-21, DEC-22 and `design_specification.md` on 2026-09-15.
 
 **OD-04 Authentication/licensing:** required before broad commercial
 release, not the first local vertical slice.
@@ -2131,7 +2234,16 @@ trade-offs.
 
 **OD-09 Pricing:** not frozen.
 
-**OD-10 Project export format:** requires implementation design.
+**OD-10 Project export format:** resolved by E02 on 2026-09-15 as the
+versioned, checksummed `.veyra-project.json` contract documented in
+`docs/Veyra_Project_Backup_Format.md`. JSON was selected over a proprietary
+binary container because it is inspectable, versionable and recoverable with
+ordinary tools; evidence is embedded as base64 so export remains one portable
+file while restore still recreates the required separate evidence tree. A
+canonical-payload SHA-256 checksum detects truncation or edits before any
+records are committed. A raw SQLite copy was rejected because it couples
+exports to internal migrations, and an unchecksummed directory bundle was
+rejected because partial copies are difficult to distinguish from valid ones.
 
 These operational decisions do not reopen the completed product grill
 unless they materially alter product behaviour.

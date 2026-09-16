@@ -62,6 +62,30 @@ cd /Users/anandarora/Veyra/apps/desktop
 npm test
 ```
 
+E03 project, environment, overview and lifecycle checks are part of this
+desktop suite. Product acceptance is performed directly in the desktop app;
+no separate stakeholder-facing terminal demo is required.
+
+Run the complete E02 quick test from the repository root:
+
+```bash
+cd /Users/anandarora/Veyra
+rtk npm run test:e02
+```
+
+The command prints five plain-language checks and writes its inspectable output
+to `/Users/anandarora/Veyra/e02-test-output/`. Use
+`e02-test-output/commerce-storefront.veyra-project.json` with **Data → Restore
+project** to exercise the native picker. Each run replaces only this test-output
+folder and never modifies Veyra's normal application data.
+
+Build and open the production desktop application from the repository root:
+
+```bash
+cd /Users/anandarora/Veyra
+rtk npm run start:desktop
+```
+
 Type-check the Electron main/preload boundary:
 
 ```bash
@@ -102,6 +126,13 @@ npm audit
 
 ## Desktop packaging
 
+Regenerate the packaging icon from the approved lossless source:
+
+```bash
+cd /Users/anandarora/Veyra
+sips -z 1024 1024 docs/brand/veyra-app-icon-source.png --out apps/desktop/build/icon.png
+```
+
 Create an unpacked Apple Silicon macOS application for fast local checks:
 
 ```bash
@@ -139,6 +170,6 @@ VEYRA_EXECUTABLE="release/mac-arm64/Veyra.app/Contents/MacOS/Veyra" node scripts
 ```
 
 Artifacts are written to `/Users/anandarora/Veyra/apps/desktop/release/`.
-E01 artifacts are unsigned and use Electron's default icon; signing,
-notarization, branded icons and update channels are E22 work. Run each package
-on its target operating system before external distribution.
+E01 artifacts use the approved Veyra mark but remain unsigned; signing,
+notarization and update channels are E22 work. Run each package on its target
+operating system before external distribution.

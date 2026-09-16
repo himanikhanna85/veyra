@@ -25,9 +25,16 @@ describe("desktop main-process IPC", () => {
       recoveredInterruptedOperationIds: [],
     };
 
+    const applyProjectCommand = vi.fn(() => ({ projectId: "shop" }));
     const dispose = registerDesktopIpc({
       getAppInfo: () => appInfo,
       getLifecycleSnapshot: () => lifecycle,
+      getStorageOverview: () => ({ databaseBytes: 10, evidenceBytes: 0, evidenceFiles: 0, projects: [], totalBytes: 10 }),
+      cleanProjectEvidence: () => ({ deletedBytes: 0, deletedFiles: 0 }),
+      exportProjectBackup: () => ({ canceled: true }),
+      restoreProjectBackup: () => ({ canceled: true }),
+      getProjectWorkspace: () => ({ activeProject: null, overview: null, projects: [] }),
+      applyProjectCommand,
       ipcMain,
       isTrustedSender: (url) => url === "veyra://app/index.html",
     });
@@ -35,6 +42,12 @@ describe("desktop main-process IPC", () => {
     expect([...handlers.keys()]).toEqual([
       IPC_CHANNELS.getAppInfo,
       IPC_CHANNELS.getLifecycleSnapshot,
+      IPC_CHANNELS.getStorageOverview,
+      IPC_CHANNELS.cleanProjectEvidence,
+      IPC_CHANNELS.exportProjectBackup,
+      IPC_CHANNELS.restoreProjectBackup,
+      IPC_CHANNELS.getProjectWorkspace,
+      IPC_CHANNELS.applyProjectCommand,
     ]);
     await expect(
       handlers.get(IPC_CHANNELS.getAppInfo)?.({
@@ -51,10 +64,21 @@ describe("desktop main-process IPC", () => {
         senderFrame: { url: "veyra://app/index.html" },
       }),
     ).resolves.toEqual(lifecycle);
+    await expect(
+      handlers.get(IPC_CHANNELS.cleanProjectEvidence)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "../bad", olderThan: "nope" }),
+    ).rejects.toThrow(/invalid/i);
+    await expect(
+      handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "delete", projectId: "../bad", confirmationName: "Shop" }),
+    ).rejects.toThrow(/invalid/i);
+    await expect(
+      handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Shopper login", value: "must-not-cross-ipc" }),
+    ).resolves.toEqual({ projectId: "shop" });
+    expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Shopper login" });
+    await handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "save-secret-reference", projectId: "shop", id: "api_token" });
+    expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "api_token", description: undefined });
 
     dispose();
-    expect(removeHandler).toHaveBeenCalledTimes(2);
+    expect(removeHandler).toHaveBeenCalledTimes(8);
     expect(handlers).toHaveLength(0);
   });
 });
-

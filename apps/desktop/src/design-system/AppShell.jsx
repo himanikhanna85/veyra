@@ -7,7 +7,6 @@ import {
   ClipboardCheck,
   Clock3,
   Database,
-  Diamond,
   Layers3,
   LayoutGrid,
   LockKeyhole,
@@ -15,6 +14,8 @@ import {
   Search,
   Settings,
 } from "lucide-react";
+import veyraMark from "../assets/brand/veyra-tr-icon.png";
+import veyraWordmark from "../assets/brand/veyra-wordmark-light.png";
 import { CommandSearch } from "./CommandSearch.jsx";
 
 const primaryNavigation = [
@@ -26,7 +27,7 @@ const primaryNavigation = [
   { id: "data", label: "Data", Icon: Database },
 ];
 
-export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
+export function AppShell({ activeProject, activeSection, children, onCreateProject, onManageProject, onNavigate, onProjectSelect, pageTitle, projects = [] }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [projectOpen, setProjectOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -68,11 +69,11 @@ export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
       </a>
 
       <aside aria-label="Veyra workspace" className="sidebar">
-        <div className="brand-lockup">
+        <div aria-label="Veyra" className="brand-lockup" role="img">
           <span aria-hidden="true" className="brand-mark">
-            <Diamond size={12} strokeWidth={2.2} />
+            <img alt="" src={veyraMark} />
           </span>
-          <span>Veyra</span>
+          <img alt="" className="brand-wordmark" src={veyraWordmark} />
         </div>
 
         <div className="project-switcher-wrap">
@@ -84,18 +85,21 @@ export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
             type="button"
           >
             <span aria-hidden="true" className="project-initials">
-              CS
+              {activeProject ? activeProject.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join("").toUpperCase() : "+"}
             </span>
-            <span>Commerce Storefront</span>
+            <span title={activeProject?.name}>{activeProject?.name ?? "Create project"}</span>
             <ChevronDown aria-hidden="true" size={14} strokeWidth={2} />
           </button>
           {projectOpen ? (
-            <div className="project-menu" role="menu" aria-label="Projects">
-              <button role="menuitem" type="button">
-                <span>Commerce Storefront</span>
-                <span className="project-menu__current">Current</span>
-              </button>
-              <button role="menuitem" type="button">
+            <div className="project-menu" aria-label="Projects">
+              {projects.map((project) => (
+                <button key={project.id} onClick={() => { onProjectSelect(project.id); setProjectOpen(false); }} type="button">
+                  <span>{project.name}</span>
+                  {project.id === activeProject?.id ? <span className="project-menu__current">Current</span> : null}
+                </button>
+              ))}
+              {activeProject ? <button onClick={() => { onManageProject(); setProjectOpen(false); }} type="button">Manage current project</button> : null}
+              <button onClick={() => { onCreateProject(); setProjectOpen(false); }} type="button">
                 Create project
               </button>
             </div>
@@ -144,7 +148,7 @@ export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
       <div className="app-workspace">
         <header className="app-header">
           <div aria-label="Breadcrumb" className="breadcrumbs">
-            <span>Commerce Storefront</span>
+            <span>{activeProject?.name ?? "Projects"}</span>
             <ChevronRight aria-hidden="true" size={14} strokeWidth={2} />
             <strong>{pageTitle}</strong>
           </div>
@@ -164,7 +168,7 @@ export function AppShell({ activeSection, children, onNavigate, pageTitle }) {
           <div className="header-actions">
             <span className="context-pill">
               <span aria-hidden="true" className="context-pill__dot" />
-              Staging
+              {activeProject?.environmentName ?? "No environment"}
             </span>
             <span className="context-pill context-pill--local">
               <LockKeyhole aria-hidden="true" size={13} strokeWidth={1.9} />

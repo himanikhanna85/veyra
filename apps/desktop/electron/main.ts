@@ -1,18 +1,22 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   net,
   protocol,
   session,
 } from "electron";
 import { randomUUID } from "node:crypto";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { FileLifecycleJournal } from "./file-lifecycle-journal";
 import { IPC_CHANNELS } from "./ipc-contract";
 import { registerDesktopIpc } from "./ipc-main";
 import { DesktopLifecycle } from "./lifecycle";
+import { ProjectStore } from "./project-store";
+import { createElectronSecretCipher } from "./electron-secret-cipher";
+import { SecretVault } from "./secret-vault";
 import {
   isTrustedRendererSender,
   selectRendererUrl,
@@ -26,6 +30,7 @@ import {
 const APP_SCHEME = "veyra";
 const rendererRoot = join(__dirname, "..", "client");
 const preloadPath = join(__dirname, "preload.cjs");
+const appIconPath = join(__dirname, "..", "..", "build", "icon.png");
 const rendererUrl = selectRendererUrl(process.env.VEYRA_RENDERER_URL);
 
 protocol.registerSchemesAsPrivileged([
@@ -51,8 +56,11 @@ let shutdownRequested = false;
 let shutdownComplete = false;
 let rendererProtocolInstalled = false;
 let applicationReady: Promise<void> | undefined;
+let projectStore: ProjectStore | undefined;
+let secretVault: SecretVault | undefined;
 
 const windowManager = new DesktopWindowManager({
+  appIconPath,
   createWindow: (options) =>
     new BrowserWindow(options) as unknown as DesktopWindowLike,
   preloadPath,
@@ -101,9 +109,16 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
     smoke.lifecyclePhase === "ready" &&
     JSON.stringify(smoke.apiKeys) ===
       JSON.stringify([
+        "applyProjectCommand",
+        "cleanProjectEvidence",
+        "exportProjectBackup",
         "getAppInfo",
         "getLifecycleSnapshot",
+        "getProjectWorkspace",
+        "getStorageOverview",
         "onLifecycleChanged",
+        "restoreProjectBackup",
+        "setSensitiveEntry",
       ]);
   if (!valid) throw new Error(`Desktop smoke check failed: ${JSON.stringify(smoke)}`);
   console.log(`VEYRA_SMOKE_READY ${JSON.stringify(smoke)}`);
@@ -120,6 +135,9 @@ async function openWindow(): Promise<void> {
 async function startApplication(): Promise<void> {
   installRendererProtocol();
   denyRendererPermissions();
+  if (process.platform === "darwin" && !app.isPackaged) {
+    app.dock?.setIcon(appIconPath);
+  }
   if (process.platform === "win32") app.setAppUserModelId("com.veyra.desktop");
 
   lifecycle = new DesktopLifecycle({
@@ -130,6 +148,23 @@ async function startApplication(): Promise<void> {
     now: () => new Date(),
   });
   await lifecycle.start();
+  projectStore = new ProjectStore(join(app.getPath("userData"), "projects"));
+  secretVault = new SecretVault(join(app.getPath("userData"), "secrets"), createElectronSecretCipher());
+
+  const getProjectWorkspace = (requestedProjectId?: string) => {
+    if (!projectStore) throw new Error("Project storage is not ready");
+    const projects = projectStore.listProjectSummaries();
+    const projectId = requestedProjectId && projects.some((project) => project.id === requestedProjectId) ? requestedProjectId : projects[0]?.id;
+    return {
+      projects,
+      activeProject: projectId ? (() => {
+        const detail = projectStore!.getProjectDetail(projectId);
+        if (!detail) return null;
+        return { ...detail, secretReferences: detail.secretReferences.map((reference) => ({ ...reference, hasValue: secretVault?.status(projectId, reference.id).configured ?? false })) };
+      })() : null,
+      overview: projectId ? projectStore.getProjectOverview(projectId) : null,
+    };
+  };
 
   disposeIpc = registerDesktopIpc({
     getAppInfo: () => ({
@@ -145,6 +180,76 @@ async function startApplication(): Promise<void> {
       cleanupFailures: [],
       phase: "starting",
       recoveredInterruptedOperationIds: [],
+    },
+    getStorageOverview: async () => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const totals = await projectStore.getStorageUsage();
+      const projects = await Promise.all(projectStore.listProjects().map(async (project) => {
+        const usage = await projectStore!.getStorageUsage(project.id);
+        return { id: project.id, name: project.name, evidenceBytes: usage.evidenceBytes, evidenceFiles: usage.evidenceFiles };
+      }));
+      return { ...totals, projects };
+    },
+    cleanProjectEvidence: (projectId, olderThan) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      return projectStore.cleanEvidence(projectId, olderThan);
+    },
+    exportProjectBackup: async (projectId) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const project = projectStore.getProject(projectId);
+      if (!project) throw new Error("Project not found");
+      const result = await dialog.showSaveDialog({
+        defaultPath: `${project.name.replace(/[^a-zA-Z0-9._-]+/g, "-")}.veyra-project.json`,
+        filters: [{ name: "Veyra project", extensions: ["json"] }],
+        title: "Export Veyra project",
+      });
+      if (result.canceled || !result.filePath) return { canceled: true } as const;
+      await projectStore.exportProject(projectId, result.filePath);
+      return { canceled: false, fileName: basename(result.filePath), projectId } as const;
+    },
+    restoreProjectBackup: async () => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const result = await dialog.showOpenDialog({
+        filters: [{ name: "Veyra project", extensions: ["json"] }],
+        properties: ["openFile"],
+        title: "Restore Veyra project",
+      });
+      const filePath = result.filePaths[0];
+      if (result.canceled || !filePath) return { canceled: true } as const;
+      const project = await projectStore.restoreProject(filePath);
+      return { canceled: false, fileName: basename(filePath), projectId: project.id } as const;
+    },
+    getProjectWorkspace,
+    applyProjectCommand: async (command) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      switch (command.type) {
+        case "create": {
+          const project = projectStore.createProject({ id: randomUUID(), name: command.name, applicationUrl: command.applicationUrl, environmentName: command.environmentName });
+          return { projectId: project.id };
+        }
+        case "update": projectStore.updateProject(command.projectId, { name: command.name, applicationUrl: command.applicationUrl }); return { projectId: command.projectId };
+        case "save-environment": {
+          const environment = projectStore.saveEnvironment(command.projectId, { id: command.environment.id ?? randomUUID(), name: command.environment.name, baseUrl: command.environment.baseUrl });
+          return { projectId: command.projectId, environmentId: environment.id };
+        }
+        case "activate-environment": projectStore.setActiveEnvironment(command.projectId, command.environmentId); return { projectId: command.projectId };
+        case "save-variable": projectStore.saveEnvironmentVariable(command.projectId, command.environmentId, { key: command.key, value: command.value }); return { projectId: command.projectId };
+        case "delete-variable": projectStore.deleteEnvironmentVariable(command.projectId, command.environmentId, command.key); return { projectId: command.projectId };
+        case "save-secret-reference": projectStore.saveSecretReference(command.projectId, { id: command.id, description: command.description }); return { projectId: command.projectId };
+        case "delete-secret-reference": secretVault?.delete(command.projectId, command.id); projectStore.deleteSecretReference(command.projectId, command.id); return { projectId: command.projectId };
+        case "set-secret-value": {
+          if (!projectStore.getProjectDetail(command.projectId)?.secretReferences.some((reference) => reference.id === command.id)) throw new Error("Secret reference not found");
+          if (!secretVault) throw new Error("Secret vault is not ready");
+          secretVault.set(command.projectId, command.id, command.value);
+          return { projectId: command.projectId };
+        }
+        case "delete-secret-value": secretVault?.delete(command.projectId, command.id); return { projectId: command.projectId };
+        case "archive": projectStore.setProjectArchived(command.projectId, command.archived); return { projectId: command.archived ? null : command.projectId };
+        case "delete": await projectStore.deleteProject(command.projectId, command.confirmationName); secretVault?.deleteProject(command.projectId); return { projectId: null };
+      }
+    },
+    setSensitiveEntry: (active) => {
+      windowManager.currentWindow?.setContentProtection?.(active);
     },
     ipcMain,
     isTrustedSender: (candidateUrl) =>
@@ -198,6 +303,7 @@ if (!hasSingleInstanceLock) {
   app.on("will-quit", () => {
     disposeLifecycleSubscription();
     disposeIpc();
+    projectStore?.close();
     if (rendererProtocolInstalled) protocol.unhandle(APP_SCHEME);
   });
   applicationReady = app.whenReady().then(startApplication);
