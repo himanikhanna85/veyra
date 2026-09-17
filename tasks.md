@@ -32,7 +32,6 @@ None.
 
 #### E06 — Teach Recorder
 
-- [ ] E06.T01 — Start a Teach session from a project/environment (`P0`; `FR06.01`; `SCR-TEACH`).
 - [ ] E06.T02 — Capture meaningful user browser actions (`P0`; `FR06.02`).
 - [ ] E06.T03 — Normalize recorded events into semantic action records (`P0`; `FR06.03`).
 - [ ] E06.T04 — Render the readable teaching timeline (`P0`; `FR06.04`; `SCR-TEACH`).
@@ -422,6 +421,7 @@ None.
 
 ## Done
 
+- [x] E06.T01 — Started and restored one named Teach session per project, bound to its active environment (`P0`; `FR06.01`; `SCR-TEACH`).
 - [x] E04.T07 — Enforced evidence-write rejection and OS window capture protection during password-masked secret entry (`P1`; `FR04.07`).
 - [x] E04.T06 — Established the production-owned AI preparation seam that never resolves references and redacts accidental known values (`P0`; `FR04.06`).
 - [x] E04.T05 — Established the production-owned raw, URL-encoded and base64 redaction seam required by structured logs and reports (`P0`; `FR04.05`).

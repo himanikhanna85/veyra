@@ -32,6 +32,45 @@ describe("Veyra desktop foundation", () => {
     expect(within(screen.getByLabelText("Breadcrumb")).getByText("Commerce Storefront")).toBeVisible();
   });
 
+  it("starts and restores a named Teach session for the active project environment", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    const session = { id: "teach-1", projectId: "shop", environmentId: "default", environmentName: "Staging", name: "Complete checkout", startedAt: "2026-09-17T08:00:00.000Z", status: "started" };
+    const startTeachSession = vi.fn().mockResolvedValue(session);
+    window.veyraDesktop = {
+      getProjectWorkspace: vi.fn().mockResolvedValue(workspace),
+      getActiveTeachSession: vi.fn().mockResolvedValue(null),
+      startTeachSession,
+    };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Teach" }));
+    await user.type(screen.getByRole("textbox", { name: "Workflow name" }), "Complete checkout");
+    await user.click(screen.getByRole("button", { name: "Start teaching" }));
+
+    await waitFor(() => expect(startTeachSession).toHaveBeenCalledWith({ projectId: "shop", environmentId: "default", name: "Complete checkout" }));
+    expect(await screen.findByRole("heading", { name: "Complete checkout" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Teaching session started");
+    expect(screen.getAllByText(/Staging/).length).toBeGreaterThan(0);
+  });
+
+  it("resumes the persisted Teach session when the desktop app reloads", async () => {
+    const user = userEvent.setup();
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    window.veyraDesktop = {
+      getProjectWorkspace: vi.fn().mockResolvedValue({ projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } }),
+      getActiveTeachSession: vi.fn().mockResolvedValue({ id: "teach-1", projectId: "shop", environmentId: "default", environmentName: "Staging", name: "Complete checkout", startedAt: "2026-09-17T08:00:00.000Z", status: "started" }),
+    };
+    render(<App />);
+
+    await screen.findByRole("heading", { name: "Teach your first workflow" });
+    await user.click(screen.getByRole("button", { name: "Teach" }));
+    expect(await screen.findByRole("heading", { name: "Complete checkout" })).toBeVisible();
+    expect(screen.getByRole("status")).toHaveTextContent("Teaching session started");
+  });
+
   it("opens and dismisses global search without losing shell context", async () => {
     const user = userEvent.setup();
     render(<App />);

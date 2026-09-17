@@ -1,6 +1,7 @@
 @import "./design-system/tokens.css";
 @import "./design-system/foundation.css";
 @import "./screens/overview.css";
+@import "./screens/teach.css";
 
 * {
   box-sizing: border-box;

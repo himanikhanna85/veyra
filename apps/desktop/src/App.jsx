@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { AppShell } from "./design-system/AppShell.jsx";
 import { OverviewScreen } from "./screens/OverviewScreen.jsx";
 import { StorageScreen } from "./screens/StorageScreen.jsx";
+import { TeachScreen } from "./screens/TeachScreen.jsx";
 import { ProjectDialog } from "./projects/ProjectDialog.jsx";
 
 const previewWorkspace = {
@@ -21,6 +22,9 @@ export function App() {
   const [browserRuntime, setBrowserRuntime] = useState(null);
   const [browserError, setBrowserError] = useState("");
   const [browserBusy, setBrowserBusy] = useState(false);
+  const [teachSession, setTeachSession] = useState(null);
+  const [teachBusy, setTeachBusy] = useState(false);
+  const [teachError, setTeachError] = useState("");
   const pageTitle = activeSection[0].toUpperCase() + activeSection.slice(1);
 
   const refreshWorkspace = useCallback(async (projectId) => {
@@ -33,6 +37,24 @@ export function App() {
   }, [hasWorkspaceApi]);
 
   useEffect(() => { void refreshWorkspace(); }, [refreshWorkspace]);
+
+  useEffect(() => {
+    let active = true;
+    async function loadTeachSession() {
+      const projectId = workspace.activeProject?.id;
+      if (!projectId || typeof window.veyraDesktop?.getActiveTeachSession !== "function") { setTeachSession(null); return; }
+      setTeachSession(null);
+      setTeachError("");
+      try {
+        const session = await window.veyraDesktop.getActiveTeachSession(projectId);
+        if (active) setTeachSession(session);
+      } catch (reason) {
+        if (active) setTeachError(reason instanceof Error ? reason.message : String(reason));
+      }
+    }
+    void loadTeachSession();
+    return () => { active = false; };
+  }, [workspace.activeProject?.id]);
 
   useEffect(() => {
     let active = true;
@@ -92,6 +114,22 @@ export function App() {
     }
   }
 
+  async function startTeachSession({ environmentId, name }) {
+    if (!workspace.activeProject || typeof window.veyraDesktop?.startTeachSession !== "function") {
+      setTeachError("Teaching is available in the desktop app.");
+      return;
+    }
+    setTeachBusy(true);
+    setTeachError("");
+    try {
+      setTeachSession(await window.veyraDesktop.startTeachSession({ projectId: workspace.activeProject.id, environmentId, name }));
+    } catch (reason) {
+      setTeachError(reason instanceof Error ? reason.message : String(reason));
+    } finally {
+      setTeachBusy(false);
+    }
+  }
+
   return (
     <AppShell
       activeSection={activeSection}
@@ -105,6 +143,8 @@ export function App() {
     >
       {activeSection === "overview" ? (
         <OverviewScreen browserBusy={browserBusy} browserError={browserError} browserRuntime={browserRuntime} browserSession={browserSession} error={workspaceError} loading={loadingWorkspace} onCreateProject={() => setProjectDialog("create")} onDiagnostics={() => setActiveSection("data")} onManageProject={() => setProjectDialog("manage")} onNavigate={setActiveSection} onRetry={() => void refreshWorkspace(workspace.activeProject?.id)} onStartControlledBrowser={() => void startControlledBrowser()} onStopControlledBrowser={() => void stopControlledBrowser()} overview={workspace.overview} project={workspace.activeProject} />
+        ) : activeSection === "teach" ? (
+          <TeachScreen busy={teachBusy} error={teachError} onCreateProject={() => setProjectDialog("create")} onStart={(request) => void startTeachSession(request)} project={workspace.activeProject} session={teachSession} />
         ) : activeSection === "data" ? (
           <StorageScreen onProjectsChanged={refreshWorkspace} />
       ) : (

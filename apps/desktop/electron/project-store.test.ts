@@ -26,6 +26,29 @@ async function createStore() {
 afterEach(() => stores.splice(0).forEach((store) => store.close()));
 
 describe("ProjectStore", () => {
+  it("starts one named Teach session for a project environment and restores it after reopening", async () => {
+    const root = await mkdtemp(join(tmpdir(), "veyra-project-store-"));
+    let store = new ProjectStore(root);
+    store.createProject({ id: "project-1", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+
+    expect(store.startTeachSession({ id: "teach-1", projectId: "project-1", environmentId: "default", name: "Complete checkout", startedAt: "2026-09-17T08:00:00.000Z" })).toEqual({
+      environmentId: "default",
+      environmentName: "Staging",
+      id: "teach-1",
+      name: "Complete checkout",
+      projectId: "project-1",
+      startedAt: "2026-09-17T08:00:00.000Z",
+      status: "started",
+    });
+    expect(() => store.startTeachSession({ id: "teach-2", projectId: "project-1", environmentId: "default", name: "Another workflow", startedAt: "2026-09-17T08:01:00.000Z" })).toThrow(/already active/i);
+
+    store.close();
+    stores.splice(stores.indexOf(store), 1);
+    store = new ProjectStore(root);
+    stores.push(store);
+    expect(store.getActiveTeachSession("project-1")?.name).toBe("Complete checkout");
+  });
+
   it("creates, edits and lists projects with one active environment", async () => {
     const { store } = await createStore();
     const project = store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
@@ -128,7 +151,7 @@ describe("ProjectStore", () => {
 
     const reopened = new ProjectStore(root);
     stores.push(reopened);
-    expect(reopened.schemaVersion).toBe(3);
+    expect(reopened.schemaVersion).toBe(4);
     expect(reopened.getProject("project-1")).toMatchObject({ name: "Shop", environmentName: "Staging" });
   });
 

@@ -126,6 +126,7 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "applyProjectCommand",
         "cleanProjectEvidence",
         "exportProjectBackup",
+        "getActiveTeachSession",
         "getAppInfo",
         "getBrowserRuntimeStatus",
         "getControlledBrowserSession",
@@ -136,6 +137,7 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "restoreProjectBackup",
         "setSensitiveEntry",
         "startControlledBrowser",
+        "startTeachSession",
         "stopControlledBrowser",
       ]);
   if (!valid) throw new Error(`Desktop smoke check failed: ${JSON.stringify(smoke)}`);
@@ -261,6 +263,23 @@ async function startApplication(): Promise<void> {
       }
     },
     getBrowserRuntimeStatus: () => browserRuntime,
+    getActiveTeachSession: (projectId) => projectStore?.getActiveTeachSession(projectId) ?? null,
+    startTeachSession: (command) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const project = projectStore.getProjectDetail(command.projectId);
+      if (!project) throw new Error("Project not found");
+      const environment = command.environmentId
+        ? project.environments.find((candidate) => candidate.id === command.environmentId)
+        : project.environments.find((candidate) => candidate.isActive);
+      if (!environment) throw new Error("Project environment not found");
+      return projectStore.startTeachSession({
+        environmentId: environment.id,
+        id: randomUUID(),
+        name: command.name,
+        projectId: project.id,
+        startedAt: new Date().toISOString(),
+      });
+    },
     startControlledBrowser: (command) => {
       if (!projectStore) throw new Error("Project storage is not ready");
       if (!controlledBrowser) throw new Error("Controlled browser is not ready");

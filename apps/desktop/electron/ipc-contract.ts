@@ -8,6 +8,8 @@ export const IPC_CHANNELS = Object.freeze({
   getProjectWorkspace: "veyra:desktop:get-project-workspace",
   applyProjectCommand: "veyra:desktop:apply-project-command",
   getBrowserRuntimeStatus: "veyra:desktop:get-browser-runtime-status",
+  getActiveTeachSession: "veyra:desktop:get-active-teach-session",
+  startTeachSession: "veyra:desktop:start-teach-session",
   startControlledBrowser: "veyra:desktop:start-controlled-browser",
   getControlledBrowserSession: "veyra:desktop:get-controlled-browser-session",
   stopControlledBrowser: "veyra:desktop:stop-controlled-browser",
@@ -72,6 +74,8 @@ export type ProjectCommand =
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
 export interface BrowserRuntimeStatusDto { compatibility: "compatible" | "unknown"; engine: "chromium"; managedBy: "veyra"; source: "electron-bundled"; status: "ready" | "unavailable"; version: string | null }
+export interface TeachSessionDto { environmentId: string; environmentName: string; id: string; name: string; projectId: string; startedAt: string; status: "started" }
+export interface StartTeachSessionCommand { environmentId?: string; name: string; projectId: string }
 export interface ControlledBrowserStartCommand { environmentId?: string; projectId: string }
 export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; isolationKey: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
 export interface ControlledBrowserStopResultDto { sessionId: string | null; status: "stopped" }
@@ -86,6 +90,8 @@ export interface VeyraDesktopApi {
   getProjectWorkspace(projectId?: string): Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): Promise<ProjectCommandResult>;
   getBrowserRuntimeStatus(): Promise<BrowserRuntimeStatusDto>;
+  getActiveTeachSession(projectId: string): Promise<TeachSessionDto | null>;
+  startTeachSession(command: StartTeachSessionCommand): Promise<TeachSessionDto>;
   startControlledBrowser(command: ControlledBrowserStartCommand): Promise<ControlledBrowserSessionDto>;
   getControlledBrowserSession(): Promise<ControlledBrowserSessionDto | null>;
   stopControlledBrowser(): Promise<ControlledBrowserStopResultDto>;
@@ -114,6 +120,8 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     getProjectWorkspace: (projectId?: string) => ipc.invoke(IPC_CHANNELS.getProjectWorkspace, { projectId }) as Promise<ProjectWorkspace>,
     applyProjectCommand: (command: ProjectCommand) => ipc.invoke(IPC_CHANNELS.applyProjectCommand, command) as Promise<ProjectCommandResult>,
     getBrowserRuntimeStatus: () => ipc.invoke(IPC_CHANNELS.getBrowserRuntimeStatus) as Promise<BrowserRuntimeStatusDto>,
+    getActiveTeachSession: (projectId: string) => ipc.invoke(IPC_CHANNELS.getActiveTeachSession, { projectId }) as Promise<TeachSessionDto | null>,
+    startTeachSession: (command: StartTeachSessionCommand) => ipc.invoke(IPC_CHANNELS.startTeachSession, command) as Promise<TeachSessionDto>,
     startControlledBrowser: (command: ControlledBrowserStartCommand) => ipc.invoke(IPC_CHANNELS.startControlledBrowser, command) as Promise<ControlledBrowserSessionDto>,
     getControlledBrowserSession: () => ipc.invoke(IPC_CHANNELS.getControlledBrowserSession) as Promise<ControlledBrowserSessionDto | null>,
     stopControlledBrowser: () => ipc.invoke(IPC_CHANNELS.stopControlledBrowser) as Promise<ControlledBrowserStopResultDto>,

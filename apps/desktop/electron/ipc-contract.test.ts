@@ -31,6 +31,8 @@ describe("Veyra desktop preload interface", () => {
       "getProjectWorkspace",
       "applyProjectCommand",
       "getBrowserRuntimeStatus",
+      "getActiveTeachSession",
+      "startTeachSession",
       "startControlledBrowser",
       "getControlledBrowserSession",
       "stopControlledBrowser",
@@ -47,6 +49,8 @@ describe("Veyra desktop preload interface", () => {
     await api.getProjectWorkspace("project-1");
     await api.applyProjectCommand({ type: "archive", projectId: "project-1", archived: true });
     await api.getBrowserRuntimeStatus();
+    await api.getActiveTeachSession("project-1");
+    await api.startTeachSession({ projectId: "project-1", environmentId: "staging", name: "Complete checkout" });
     await api.startControlledBrowser({ projectId: "project-1", environmentId: "staging" });
     await api.getControlledBrowserSession();
     await api.stopControlledBrowser();
@@ -61,6 +65,8 @@ describe("Veyra desktop preload interface", () => {
       [IPC_CHANNELS.getProjectWorkspace, { projectId: "project-1" }],
       [IPC_CHANNELS.applyProjectCommand, { type: "archive", projectId: "project-1", archived: true }],
       [IPC_CHANNELS.getBrowserRuntimeStatus],
+      [IPC_CHANNELS.getActiveTeachSession, { projectId: "project-1" }],
+      [IPC_CHANNELS.startTeachSession, { projectId: "project-1", environmentId: "staging", name: "Complete checkout" }],
       [IPC_CHANNELS.startControlledBrowser, { projectId: "project-1", environmentId: "staging" }],
       [IPC_CHANNELS.getControlledBrowserSession],
       [IPC_CHANNELS.stopControlledBrowser],

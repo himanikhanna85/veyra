@@ -5,7 +5,7 @@ import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises
 import { dirname, join } from "node:path";
 import { collectSecretReferenceIds } from "./secret-protection";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 const SECRET_REFERENCE_ID = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
@@ -40,6 +40,16 @@ export interface CompletedRunRecord {
   id: string;
   outcome: string;
   projectId: string;
+}
+
+export interface TeachSessionRecord {
+  environmentId: string;
+  environmentName: string;
+  id: string;
+  name: string;
+  projectId: string;
+  startedAt: string;
+  status: "started";
 }
 
 export interface StorageUsage {
@@ -214,6 +224,11 @@ export class ProjectStore {
       CREATE TABLE secret_references (project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, id TEXT NOT NULL, description TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY(project_id,id));
       PRAGMA user_version = 3;
       COMMIT;`);
+    if (version < 4) this.#database.exec(`BEGIN IMMEDIATE;
+      CREATE TABLE teach_sessions (id TEXT PRIMARY KEY, project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE, environment_id TEXT NOT NULL, name TEXT NOT NULL, status TEXT NOT NULL CHECK(status IN ('started')), started_at TEXT NOT NULL, FOREIGN KEY(project_id,environment_id) REFERENCES environments(project_id,id));
+      CREATE UNIQUE INDEX one_active_teach_session_per_project ON teach_sessions(project_id) WHERE status='started';
+      PRAGMA user_version = 4;
+      COMMIT;`);
   }
 
   createProject(project: ProjectRecord): ProjectDetail {
@@ -364,6 +379,41 @@ export class ProjectStore {
       recentRunItems: runs.map((run) => ({ id: String(run.id), outcome: String(run.outcome), completedAt: String(run.completed_at) })),
       moduleItems: moduleRows.map((row) => { const payload = JSON.parse(String(row.payload_json)) as Record<string, unknown>; return { id: String(row.id), name: typeof payload.name === "string" ? payload.name : String(row.id) }; }),
     };
+  }
+
+  startTeachSession(session: { environmentId: string; id: string; name: string; projectId: string; startedAt: string }): TeachSessionRecord {
+    assertSafeId(session.id, "Teach session id");
+    assertSafeId(session.projectId, "Project id");
+    assertSafeId(session.environmentId, "Environment id");
+    assertIsoDate(session.startedAt, "Teach session start date");
+    const name = session.name.trim();
+    if (!name) throw new Error("Workflow name is required");
+    if (name.length > 120) throw new Error("Workflow name must be 120 characters or fewer");
+    const environment = this.#database.prepare("SELECT e.name,p.archived_at FROM environments e JOIN projects p ON p.id=e.project_id WHERE e.project_id=? AND e.id=?").get(session.projectId, session.environmentId) as Record<string, unknown> | undefined;
+    if (!environment) throw new Error("Project environment not found");
+    if (environment.archived_at != null) throw new Error("Archived projects cannot start teaching");
+    try {
+      this.#database.prepare("INSERT INTO teach_sessions (id,project_id,environment_id,name,status,started_at) VALUES (?,?,?,?,?,?)")
+        .run(session.id, session.projectId, session.environmentId, name, "started", session.startedAt);
+    } catch (error) {
+      if (String(error).includes("one_active_teach_session_per_project") || String(error).includes("UNIQUE constraint failed: teach_sessions.project_id")) throw new Error("A Teach session is already active for this project");
+      throw error;
+    }
+    return this.getActiveTeachSession(session.projectId)!;
+  }
+
+  getActiveTeachSession(projectId: string): TeachSessionRecord | undefined {
+    assertSafeId(projectId, "Project id");
+    const row = this.#database.prepare("SELECT t.id,t.project_id,t.environment_id,t.name,t.status,t.started_at,e.name environment_name FROM teach_sessions t JOIN environments e ON e.project_id=t.project_id AND e.id=t.environment_id WHERE t.project_id=? AND t.status='started'").get(projectId) as Record<string, unknown> | undefined;
+    return row ? {
+      id: String(row.id),
+      projectId: String(row.project_id),
+      environmentId: String(row.environment_id),
+      environmentName: String(row.environment_name),
+      name: String(row.name),
+      status: "started",
+      startedAt: String(row.started_at),
+    } : undefined;
   }
 
   saveProject(project: ProjectRecord): void {

@@ -690,6 +690,13 @@ bundled runtime cannot be identified.
 
 Start a named Teach workflow.
 
+Implementation note: the Teach destination accepts a required workflow name,
+binds the session to the active project environment and persists one active
+started session per project in schema v4. A typed main-process interface can
+start or restore the active session, so its name, environment and start time
+survive an application restart. The session does not claim to be recording;
+controlled-browser action capture begins in FR06.02.
+
 ### FR06.02 --- Meaningful actions \[P0\]
 
 Capture navigation, click, type, select and meaningful key actions.

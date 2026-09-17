@@ -75,6 +75,16 @@ confirm that the runtime is available.
 Future Teach and Run work should call this module or deepen it, not create a
 parallel window-launch path.
 
+## Teach sessions
+
+`ProjectStore` owns persisted Teach-session identity and lifecycle state.
+Schema v4 permits one active started session per project, tied by foreign key
+to a real project environment. The renderer may start or restore that session
+only through the typed preload methods; recording events and normalization
+will deepen this interface in E06.T02–T03 rather than create renderer-owned
+session state. E06.T01 must not present this started state as active recording;
+that transition belongs to browser event capture in E06.T02.
+
 ## Project persistence
 
 `electron/project-store.ts` is the E02 persistence module and the only seam for
