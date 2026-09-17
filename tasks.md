@@ -32,7 +32,7 @@ None.
 
 #### E06 — Teach Recorder
 
-- [ ] E06.T02 — Capture meaningful user browser actions (`P0`; `FR06.02`).
+- [ ] E06.T02 — Capture meaningful browser actions with sanitized multi-signal DOM/accessibility target fingerprints and ambiguity-safe evidence (`P0`; `FR06.02`; `FR18.01`; `FR18.07`).
 - [ ] E06.T03 — Normalize recorded events into semantic action records (`P0`; `FR06.03`).
 - [ ] E06.T04 — Render the readable teaching timeline (`P0`; `FR06.04`; `SCR-TEACH`).
 - [ ] E06.T05 — Filter recorder noise and duplicate events (`P0`; `FR06.05`).

@@ -701,6 +701,48 @@ controlled-browser action capture begins in FR06.02.
 
 Capture navigation, click, type, select and meaningful key actions.
 
+Each target-bearing action must capture a serializable, sanitized target
+fingerprint at teaching time. Veyra does not attempt to retain a live DOM node,
+which cannot survive navigation or a later browser session. The fingerprint
+must contain enough independent evidence to distinguish repeated controls such
+as multiple **Add to cart** buttons:
+
+- element tag/type, accessible role and accessible name;
+- associated label, visible text and stable attributes such as `data-testid`,
+  durable `id`, `name` and `aria-*` values;
+- the nearest meaningful ancestor identity, including roles, headings, product
+  or row names and other nearby text that scopes the target;
+- a bounded, sanitized relevant-subtree snapshot plus ancestor/sibling
+  structural signature;
+- page identity/URL and the observable navigation or state change caused by
+  the action; and
+- multiple locator candidates with their source signals, never only an
+  absolute selector, XPath, DOM index or screen coordinate.
+
+Example: when several controls are named **Add to cart**, the captured meaning
+is “the Add to cart button inside the Wireless Headphones product card,” not
+“the third Add to cart button.” A later parameterization may replace the card
+identity with `{{productName}}`.
+
+Generated class names, volatile IDs, absolute DOM paths, occurrence indexes
+and geometry are weak diagnostic signals only. Passwords, tokens and protected
+values must be represented through the existing secret-reference/redaction
+policy and must not enter DOM fingerprints or nearby-text evidence.
+
+**Design rationale:** the fingerprint is the durable teaching evidence used by
+FR06.03 normalization and the FR18 multi-signal resolver. Capturing the
+relevant DOM/accessibility neighborhood enables candidate comparison after UI
+changes without making full-page DOM equality the definition of success.
+FR18 may rank a clearly superior candidate, but equivalent or low-confidence
+matches must produce BLOCKED rather than a guessed click. Persistent baseline
+self-healing remains governed post-V0 work in FR18.09; V0 must not silently
+rewrite a taught target.
+
+**Acceptance:** automated coverage must include at least two same-name controls
+under different semantic ancestors and prove that their fingerprints remain
+distinct. It must also prove that sensitive input values are absent and that
+ambiguous candidates do not collapse to an occurrence-index locator.
+
 ### FR06.03 --- Normalize \[P0\]
 
 Convert raw events to stable normalized Veyra actions.
