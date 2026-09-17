@@ -1,4 +1,4 @@
-import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type ControlledBrowserSessionDto, type ControlledBrowserStartCommand, type ControlledBrowserStopResultDto, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StorageOverview } from "./ipc-contract";
+import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type BrowserRuntimeStatusDto, type ControlledBrowserSessionDto, type ControlledBrowserStartCommand, type ControlledBrowserStopResultDto, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StorageOverview } from "./ipc-contract";
 
 export interface IpcMainEventLike {
   senderFrame?: {
@@ -23,6 +23,7 @@ interface DesktopIpcDependencies {
   restoreProjectBackup(): BackupDialogResult | Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): ProjectWorkspace | Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): ProjectCommandResult | Promise<ProjectCommandResult>;
+  getBrowserRuntimeStatus(): BrowserRuntimeStatusDto | Promise<BrowserRuntimeStatusDto>;
   startControlledBrowser(command: ControlledBrowserStartCommand): ControlledBrowserSessionDto | Promise<ControlledBrowserSessionDto>;
   getControlledBrowserSession(): ControlledBrowserSessionDto | null | Promise<ControlledBrowserSessionDto | null>;
   stopControlledBrowser(): ControlledBrowserStopResultDto | Promise<ControlledBrowserStopResultDto>;
@@ -40,6 +41,7 @@ export function registerDesktopIpc({
   restoreProjectBackup,
   getProjectWorkspace,
   applyProjectCommand,
+  getBrowserRuntimeStatus,
   startControlledBrowser,
   getControlledBrowserSession,
   stopControlledBrowser,
@@ -133,6 +135,7 @@ export function registerDesktopIpc({
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return applyProjectCommand(validateProjectCommand(payload));
   });
+  ipcMain.handle(IPC_CHANNELS.getBrowserRuntimeStatus, trustedHandler(getBrowserRuntimeStatus));
   ipcMain.handle(IPC_CHANNELS.startControlledBrowser, async (event, payload) => {
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return startControlledBrowser(validateControlledBrowserStart(payload));
@@ -155,6 +158,7 @@ export function registerDesktopIpc({
     ipcMain.removeHandler(IPC_CHANNELS.restoreProjectBackup);
     ipcMain.removeHandler(IPC_CHANNELS.getProjectWorkspace);
     ipcMain.removeHandler(IPC_CHANNELS.applyProjectCommand);
+    ipcMain.removeHandler(IPC_CHANNELS.getBrowserRuntimeStatus);
     ipcMain.removeHandler(IPC_CHANNELS.startControlledBrowser);
     ipcMain.removeHandler(IPC_CHANNELS.getControlledBrowserSession);
     ipcMain.removeHandler(IPC_CHANNELS.stopControlledBrowser);

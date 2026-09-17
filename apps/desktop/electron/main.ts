@@ -11,6 +11,7 @@ import { randomUUID } from "node:crypto";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ControlledBrowser } from "./controlled-browser";
+import { inspectBundledBrowserRuntime } from "./browser-runtime";
 import { FileLifecycleJournal } from "./file-lifecycle-journal";
 import { IPC_CHANNELS } from "./ipc-contract";
 import { registerDesktopIpc } from "./ipc-main";
@@ -35,6 +36,7 @@ const rendererRoot = join(__dirname, "..", "client");
 const preloadPath = join(__dirname, "preload.cjs");
 const appIconPath = join(__dirname, "..", "..", "build", "icon.png");
 const rendererUrl = selectRendererUrl(process.env.VEYRA_RENDERER_URL);
+const browserRuntime = inspectBundledBrowserRuntime(process.versions.chrome);
 
 protocol.registerSchemesAsPrivileged([
   {
@@ -125,6 +127,7 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "cleanProjectEvidence",
         "exportProjectBackup",
         "getAppInfo",
+        "getBrowserRuntimeStatus",
         "getControlledBrowserSession",
         "getLifecycleSnapshot",
         "getProjectWorkspace",
@@ -257,9 +260,11 @@ async function startApplication(): Promise<void> {
         case "delete": await projectSecrets!.deleteProject(command.projectId, command.confirmationName); return { projectId: null };
       }
     },
+    getBrowserRuntimeStatus: () => browserRuntime,
     startControlledBrowser: (command) => {
       if (!projectStore) throw new Error("Project storage is not ready");
       if (!controlledBrowser) throw new Error("Controlled browser is not ready");
+      if (browserRuntime.status !== "ready") throw new Error("Veyra's bundled Chromium runtime is unavailable");
       const project = projectStore.getProjectDetail(command.projectId);
       if (!project) throw new Error("Project not found");
       const environment = command.environmentId

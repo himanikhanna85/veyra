@@ -30,6 +30,7 @@ describe("Veyra desktop preload interface", () => {
       "restoreProjectBackup",
       "getProjectWorkspace",
       "applyProjectCommand",
+      "getBrowserRuntimeStatus",
       "startControlledBrowser",
       "getControlledBrowserSession",
       "stopControlledBrowser",
@@ -45,6 +46,7 @@ describe("Veyra desktop preload interface", () => {
     await api.restoreProjectBackup();
     await api.getProjectWorkspace("project-1");
     await api.applyProjectCommand({ type: "archive", projectId: "project-1", archived: true });
+    await api.getBrowserRuntimeStatus();
     await api.startControlledBrowser({ projectId: "project-1", environmentId: "staging" });
     await api.getControlledBrowserSession();
     await api.stopControlledBrowser();
@@ -58,6 +60,7 @@ describe("Veyra desktop preload interface", () => {
       [IPC_CHANNELS.restoreProjectBackup],
       [IPC_CHANNELS.getProjectWorkspace, { projectId: "project-1" }],
       [IPC_CHANNELS.applyProjectCommand, { type: "archive", projectId: "project-1", archived: true }],
+      [IPC_CHANNELS.getBrowserRuntimeStatus],
       [IPC_CHANNELS.startControlledBrowser, { projectId: "project-1", environmentId: "staging" }],
       [IPC_CHANNELS.getControlledBrowserSession],
       [IPC_CHANNELS.stopControlledBrowser],

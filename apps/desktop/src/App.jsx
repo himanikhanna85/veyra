@@ -18,6 +18,7 @@ export function App() {
   const [loadingWorkspace, setLoadingWorkspace] = useState(hasWorkspaceApi);
   const [workspaceError, setWorkspaceError] = useState("");
   const [browserSession, setBrowserSession] = useState(null);
+  const [browserRuntime, setBrowserRuntime] = useState(null);
   const [browserError, setBrowserError] = useState("");
   const [browserBusy, setBrowserBusy] = useState(false);
   const pageTitle = activeSection[0].toUpperCase() + activeSection.slice(1);
@@ -38,8 +39,14 @@ export function App() {
     async function loadBrowserSession() {
       if (typeof window.veyraDesktop?.getControlledBrowserSession !== "function") return;
       try {
-        const session = await window.veyraDesktop.getControlledBrowserSession();
-        if (active) setBrowserSession(session);
+        const [session, runtime] = await Promise.all([
+          window.veyraDesktop.getControlledBrowserSession(),
+          window.veyraDesktop.getBrowserRuntimeStatus(),
+        ]);
+        if (active) {
+          setBrowserSession(session);
+          setBrowserRuntime(runtime);
+        }
       } catch (reason) {
         if (active) setBrowserError(reason instanceof Error ? reason.message : String(reason));
       }
@@ -97,7 +104,7 @@ export function App() {
       pageTitle={pageTitle}
     >
       {activeSection === "overview" ? (
-        <OverviewScreen browserBusy={browserBusy} browserError={browserError} browserSession={browserSession} error={workspaceError} loading={loadingWorkspace} onCreateProject={() => setProjectDialog("create")} onDiagnostics={() => setActiveSection("data")} onManageProject={() => setProjectDialog("manage")} onNavigate={setActiveSection} onRetry={() => void refreshWorkspace(workspace.activeProject?.id)} onStartControlledBrowser={() => void startControlledBrowser()} onStopControlledBrowser={() => void stopControlledBrowser()} overview={workspace.overview} project={workspace.activeProject} />
+        <OverviewScreen browserBusy={browserBusy} browserError={browserError} browserRuntime={browserRuntime} browserSession={browserSession} error={workspaceError} loading={loadingWorkspace} onCreateProject={() => setProjectDialog("create")} onDiagnostics={() => setActiveSection("data")} onManageProject={() => setProjectDialog("manage")} onNavigate={setActiveSection} onRetry={() => void refreshWorkspace(workspace.activeProject?.id)} onStartControlledBrowser={() => void startControlledBrowser()} onStopControlledBrowser={() => void stopControlledBrowser()} overview={workspace.overview} project={workspace.activeProject} />
         ) : activeSection === "data" ? (
           <StorageScreen onProjectsChanged={refreshWorkspace} />
       ) : (

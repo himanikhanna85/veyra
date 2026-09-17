@@ -66,9 +66,14 @@ Chromium in a separate headed window with a fresh non-persistent partition per
 session. It returns metadata only: session id, isolation key, project,
 environment, URL, launch time, browser engine and Chromium version.
 
+`electron/browser-runtime.ts` owns runtime discovery. Electron's version-pinned
+bundled Chromium is the managed runtime and is compatible by construction with
+Electron's `BrowserWindow`; its engine, version, source, compatibility and
+readiness may cross typed IPC, while launch is rejected if detection cannot
+confirm that the runtime is available.
+
 Future Teach and Run work should call this module or deepen it, not create a
-parallel window-launch path. E05.T06 still needs explicit browser-runtime
-management beyond the bundled Chromium runtime.
+parallel window-launch path.
 
 ## Project persistence
 

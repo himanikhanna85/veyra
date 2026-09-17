@@ -7,6 +7,7 @@ export const IPC_CHANNELS = Object.freeze({
   restoreProjectBackup: "veyra:desktop:restore-project-backup",
   getProjectWorkspace: "veyra:desktop:get-project-workspace",
   applyProjectCommand: "veyra:desktop:apply-project-command",
+  getBrowserRuntimeStatus: "veyra:desktop:get-browser-runtime-status",
   startControlledBrowser: "veyra:desktop:start-controlled-browser",
   getControlledBrowserSession: "veyra:desktop:get-controlled-browser-session",
   stopControlledBrowser: "veyra:desktop:stop-controlled-browser",
@@ -70,6 +71,7 @@ export type ProjectCommand =
   | { type: "archive"; projectId: string; archived: boolean }
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
+export interface BrowserRuntimeStatusDto { compatibility: "compatible" | "unknown"; engine: "chromium"; managedBy: "veyra"; source: "electron-bundled"; status: "ready" | "unavailable"; version: string | null }
 export interface ControlledBrowserStartCommand { environmentId?: string; projectId: string }
 export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; isolationKey: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
 export interface ControlledBrowserStopResultDto { sessionId: string | null; status: "stopped" }
@@ -83,6 +85,7 @@ export interface VeyraDesktopApi {
   restoreProjectBackup(): Promise<BackupDialogResult>;
   getProjectWorkspace(projectId?: string): Promise<ProjectWorkspace>;
   applyProjectCommand(command: ProjectCommand): Promise<ProjectCommandResult>;
+  getBrowserRuntimeStatus(): Promise<BrowserRuntimeStatusDto>;
   startControlledBrowser(command: ControlledBrowserStartCommand): Promise<ControlledBrowserSessionDto>;
   getControlledBrowserSession(): Promise<ControlledBrowserSessionDto | null>;
   stopControlledBrowser(): Promise<ControlledBrowserStopResultDto>;
@@ -110,6 +113,7 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     restoreProjectBackup: () => ipc.invoke(IPC_CHANNELS.restoreProjectBackup) as Promise<BackupDialogResult>,
     getProjectWorkspace: (projectId?: string) => ipc.invoke(IPC_CHANNELS.getProjectWorkspace, { projectId }) as Promise<ProjectWorkspace>,
     applyProjectCommand: (command: ProjectCommand) => ipc.invoke(IPC_CHANNELS.applyProjectCommand, command) as Promise<ProjectCommandResult>,
+    getBrowserRuntimeStatus: () => ipc.invoke(IPC_CHANNELS.getBrowserRuntimeStatus) as Promise<BrowserRuntimeStatusDto>,
     startControlledBrowser: (command: ControlledBrowserStartCommand) => ipc.invoke(IPC_CHANNELS.startControlledBrowser, command) as Promise<ControlledBrowserSessionDto>,
     getControlledBrowserSession: () => ipc.invoke(IPC_CHANNELS.getControlledBrowserSession) as Promise<ControlledBrowserSessionDto | null>,
     stopControlledBrowser: () => ipc.invoke(IPC_CHANNELS.stopControlledBrowser) as Promise<ControlledBrowserStopResultDto>,

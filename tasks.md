@@ -28,7 +28,7 @@ None.
 - [x] E05.T03 — Capture browser/session metadata (`P0`; `FR05.03`).
 - [x] E05.T04 — Isolate browser contexts between runs and projects (`P0`; `FR05.04`).
 - [x] E05.T05 — Stop the controlled browser safely (`P0`; `FR05.05`).
-- [ ] E05.T06 — Install and manage compatible browser binaries (`P0`; `FR05.06`).
+- [x] E05.T06 — Install and manage compatible browser binaries (`P0`; `FR05.06`).
 
 #### E06 — Teach Recorder
 

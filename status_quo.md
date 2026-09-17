@@ -6,7 +6,7 @@
 - The renderer is sandboxed, context-isolated and Node-free. Production assets use the local `veyra://app` origin, navigation and permissions are denied by default, and the bundled preload exposes only typed, allow-listed APIs/events.
 - The main process owns single-instance window behavior and a versioned atomic lifecycle journal under Electron's stable application-data location. Shutdown cleanup is bounded and idempotent; unfinished or unclean operations are recovered on the next launch.
 - macOS arm64/x64 DMG and ZIP packages and a Windows x64 NSIS installer build successfully. GitHub Actions is configured to repeat tests and packaging on native macOS and Windows runners after the repository is pushed.
-- Source and packaged Apple Silicon apps passed two-launch smoke checks proving renderer isolation, IPC access, clean shutdown and persisted lifecycle state. The 55-test suite, TypeScript check, Vite/Electron build, Sites tests and desktop restart smoke check pass.
+- Source and packaged Apple Silicon apps passed two-launch smoke checks proving renderer isolation, IPC access, clean shutdown and persisted lifecycle state. The 63-test suite, TypeScript check, Vite/Electron build, Sites tests and desktop restart smoke check pass.
 - The approved transparent Veyra mark is embedded in the development window, macOS bundle/Dock metadata and Windows executable/installer resources; its lossless source and generated packaging derivative are both versioned.
 - The desktop sidebar now uses the supplied `veyra_tr_icon.png` mark and the exact rectlogo-derived wordmark artwork. The former generic blue diamond and font-rendered label have been removed; the combined lockup is exposed accessibly as “Veyra”.
 - Current packaging limits are deliberate E22 work: artifacts are unsigned and have no update channel. Windows and Intel macOS artifacts are built but still need runtime execution on native target hosts; this ARM machine lacks the Intel compatibility runtime.
@@ -19,8 +19,8 @@
 - E04 Secrets & Sensitive Data is implemented. Project Settings creates logical references and supports password-masked value save, replace, clear and reference deletion. Values are encrypted through the OS-backed secure-storage adapter outside SQLite, are never returned to the renderer, and are omitted from backups.
 - Definitions persist exact logical `{ secretRef }` tokens, validate project ownership and block deletion while referenced. The production-owned `ProjectSecrets` seam is the only runtime resolver and supplies mandatory log/report redaction and non-resolving AI preparation. Secret entry activates OS window capture protection, and the project evidence writer rejects capture through the shared guard until entry ends.
 - Project backup format version 3 preserves value-free secret-reference metadata as well as environments and variables, while restore remains compatible with existing versions 1 and 2. Backups never contain secret values or secure-store locators.
-- E05 Controlled Browser is implemented through T04. The desktop main process owns a `ControlledBrowser` module that opens the active project environment in a separate headed Chromium window, returns session metadata to the renderer, shows status in Overview and stops the session safely.
-- Each controlled browser launch uses a fresh non-persistent Electron partition keyed by project id and session id, so cookies/localStorage/session state do not bleed across projects or sessions. Browser-binary management is still queued in E05.T06; the current slice uses Electron's bundled Chromium.
+- E05 Controlled Browser is complete. The desktop main process owns a `ControlledBrowser` module that opens the active project environment in a separate headed Chromium window, returns session metadata to the renderer, shows status in Overview and stops the session safely.
+- Each controlled browser launch uses a fresh non-persistent Electron partition keyed by project id and session id, so cookies/localStorage/session state do not bleed across projects or sessions. Veyra manages Electron's version-pinned, BrowserWindow-compatible bundled Chromium, reports its source/version/compatibility/readiness through typed IPC and blocks launch with a visible unavailable state if runtime detection fails.
 - `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21` through `DEC-23`, locking the approved visual system, representative flow, application mark and in-product lockup.
 - Root `design_specification.md` is now the design source of truth. It formalizes the approved `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` shell, tokens, components, interactions, accessibility contract, overlays and seven screens.
 - The approved product language is a dark `#101827` navigation shell, warm `#F6F7F5` workspace, Inter with limited Instrument Serif, blue confirmation/selection, one orange high-energy action per screen and teal links/assertions.
@@ -34,7 +34,6 @@
 ## In flight
 
 - No implementation task is currently in progress.
-- E05.T06 remains in the Controlled Browser backlog.
 
 ## Open decisions
 
@@ -46,4 +45,4 @@
 
 ## Most useful next action
 
-Finish E05.T06: formalize compatible browser-runtime management beyond Electron's bundled Chromium.
+Start E06.T01: create a named Teach session from the active project and environment.

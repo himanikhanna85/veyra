@@ -673,6 +673,14 @@ stops any active controlled browser during application shutdown.
 
 Reliably install/find/manage compatible browser runtime.
 
+Implementation note: Veyra treats Electron's version-pinned bundled Chromium
+as its managed runtime, so packaged applications do not depend on a separately
+installed system browser. Main-process detection publishes engine, version,
+source, compatibility and readiness through typed IPC. The version-pinned
+runtime is compatible by construction with Electron's `BrowserWindow`;
+Overview disables launch and reports an unavailable/unknown state when the
+bundled runtime cannot be identified.
+
 ## E06 --- Teach Recorder
 
 **Module:** M03\

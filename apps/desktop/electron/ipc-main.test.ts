@@ -50,6 +50,7 @@ describe("desktop main-process IPC", () => {
       restoreProjectBackup: () => ({ canceled: true }),
       getProjectWorkspace: () => ({ activeProject: null, overview: null, projects: [] }),
       applyProjectCommand,
+      getBrowserRuntimeStatus: () => ({ compatibility: "compatible", engine: "chromium", managedBy: "veyra", source: "electron-bundled", status: "ready", version: "144.0.7559.97" }),
       startControlledBrowser,
       getControlledBrowserSession,
       stopControlledBrowser,
@@ -67,6 +68,7 @@ describe("desktop main-process IPC", () => {
       IPC_CHANNELS.restoreProjectBackup,
       IPC_CHANNELS.getProjectWorkspace,
       IPC_CHANNELS.applyProjectCommand,
+      IPC_CHANNELS.getBrowserRuntimeStatus,
       IPC_CHANNELS.startControlledBrowser,
       IPC_CHANNELS.getControlledBrowserSession,
       IPC_CHANNELS.stopControlledBrowser,
@@ -87,6 +89,9 @@ describe("desktop main-process IPC", () => {
         senderFrame: { url: "veyra://app/index.html" },
       }),
     ).resolves.toEqual(lifecycle);
+    await expect(
+      handlers.get(IPC_CHANNELS.getBrowserRuntimeStatus)?.({ senderFrame: { url: "veyra://app/index.html" } }),
+    ).resolves.toMatchObject({ status: "ready", version: "144.0.7559.97" });
     await expect(
       handlers.get(IPC_CHANNELS.cleanProjectEvidence)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "../bad", olderThan: "nope" }),
     ).rejects.toThrow(/invalid/i);
@@ -115,7 +120,7 @@ describe("desktop main-process IPC", () => {
     await expect(handlers.get(IPC_CHANNELS.setSensitiveEntry)?.({ senderFrame: { url: "https://attacker.example/" } }, { active: false })).rejects.toThrow(/untrusted/i);
 
     dispose();
-    expect(removeHandler).toHaveBeenCalledTimes(12);
+    expect(removeHandler).toHaveBeenCalledTimes(13);
     expect(handlers).toHaveLength(0);
   });
 });

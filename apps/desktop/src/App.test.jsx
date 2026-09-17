@@ -243,6 +243,7 @@ describe("Veyra desktop foundation", () => {
     });
     const stopControlledBrowser = vi.fn().mockResolvedValue({ sessionId: "session-1", status: "stopped" });
     window.veyraDesktop = {
+      getBrowserRuntimeStatus: vi.fn().mockResolvedValue({ compatibility: "compatible", engine: "chromium", managedBy: "veyra", source: "electron-bundled", status: "ready", version: "144.0.7559.97" }),
       getControlledBrowserSession: vi.fn().mockResolvedValue(null),
       getProjectWorkspace: vi.fn().mockResolvedValue(workspace),
       startControlledBrowser,
@@ -260,6 +261,20 @@ describe("Veyra desktop foundation", () => {
     await user.click(screen.getByRole("button", { name: "Stop" }));
 
     await waitFor(() => expect(stopControlledBrowser).toHaveBeenCalled());
-    expect(screen.getByText("Open Staging in a Veyra-controlled Chromium window.")).toBeVisible();
+    expect(screen.getByText(/Compatible bundled Chromium 144\.0\.7559\.97 · Open Staging/)).toBeVisible();
+  });
+
+  it("disables browser launch when the managed Chromium runtime is unavailable", async () => {
+    const project = { id: "shop", name: "Shop QA", applicationUrl: "https://shop.test", environmentName: "Staging", archived: false, environments: [{ id: "default", name: "Staging", baseUrl: "https://shop.test", isActive: true, variables: [] }], secretReferences: [] };
+    const workspace = { projects: [{ id: "shop", name: "Shop QA", environmentName: "Staging", archived: false }], activeProject: project, overview: { tests: 0, modules: 0, recentRuns: 0, latestOutcome: null, latestRunAt: null, passRate: null, outcomeCounts: {}, recentRunItems: [], moduleItems: [] } };
+    window.veyraDesktop = {
+      getBrowserRuntimeStatus: vi.fn().mockResolvedValue({ compatibility: "unknown", engine: "chromium", managedBy: "veyra", source: "electron-bundled", status: "unavailable", version: null }),
+      getControlledBrowserSession: vi.fn().mockResolvedValue(null),
+      getProjectWorkspace: vi.fn().mockResolvedValue(workspace),
+    };
+    render(<App />);
+
+    expect(await screen.findByText(/Bundled Chromium unavailable/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "Start browser" })).toBeDisabled();
   });
 });
