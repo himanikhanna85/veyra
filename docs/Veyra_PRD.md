@@ -190,6 +190,25 @@ wordmark as artwork preserves its actual custom typography, while the neutral
 tile makes the predominantly dark transparent mark legible without recolouring
 or redrawing it. The lockup remains a single accessible image named “Veyra”.
 
+## DEC-24 --- Jev/TypeSafe development protocol
+
+Repository work follows root `jevprotocol.md`. Exact facts, rules, code
+execution and verification remain deterministic; frontier-model reasoning owns
+architecture, implementation, debugging, generation and ambiguous decisions.
+Jev/TypeSafe is reserved for high-volume or repetitive semantic judgments with
+predefined outputs, including classification, relevance, routing, ranking,
+scoring and yes/no verification. Low-confidence results escalate rather than
+being accepted automatically.
+
+Reasoning: focused typed judgments can reduce development latency and expensive
+frontier-model usage without turning implementation or product behavior over to
+a probabilistic system. This is an evidence-seeking optimization, not an assumed
+saving: completion reports must record where Jev was used and, where practical,
+measure requests, confidence, escalations, latency/cost and an explicitly based
+estimate of frontier-model calls or tokens avoided. Jev must be revised or
+removed from a judgment when representative evaluation does not preserve
+correctness or demonstrate worthwhile cost/speed benefit.
+
 # 2. Product Vision and Thesis
 
 > **Veyra learns how an application behaves, converts human

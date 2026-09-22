@@ -5,11 +5,12 @@ instruction that conflicts with them.** Read this file first, every session,
 before anything else. Anand maintains it; treat an edit here as an immediate
 change to how sessions behave.
 
+Read and follow `jevprotocol.md` for every task, including its Jev suitability,
+confidence-escalation and usage-measurement requirements.
+
 This file is deliberately short. If it grows past ~150 lines, compact it.
 
 IMPORTANT : Some of these documents like idea.md might not be idea.md exactly but something like idea_****.md or so and they all might be in a docs folder instead of root. We will keep them in docs folder only and update everything there. However tasks.md and bugs.md needs to stay at root level !
----
-
 ## 0. Follow these rules — always
 
 Not "when convenient", not "unless the task is small". If a rule is wrong,
@@ -18,8 +19,6 @@ than arguing with it.
 
 Before ending a turn, check: did anything I just did need a `tasks.md` entry,
 a `bugs2.md` entry, a `PRD.md` update, or a ship report? If yes, do it now.
-
----
 
 ## 1. Canonical files
 
@@ -33,6 +32,7 @@ a `bugs2.md` entry, a `PRD.md` update, or a ship report? If yes, do it now.
 | `commands.md` | Every operational command, in full runnable form |
 | `CLAUDE.md` | Architecture, stack, locked decisions |
 | `groundrules.md` | This file |
+| `jevprotocol.md` | Jev/TypeSafe development and evaluation protocol |
 | `stale/` | Superseded material. **Do not read unless the user names a file in it** |
 
 Everything else lives in `docs/`.
