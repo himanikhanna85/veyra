@@ -10,9 +10,11 @@ export const IPC_CHANNELS = Object.freeze({
   getBrowserRuntimeStatus: "veyra:desktop:get-browser-runtime-status",
   getActiveTeachSession: "veyra:desktop:get-active-teach-session",
   startTeachSession: "veyra:desktop:start-teach-session",
+  setTeachSessionPaused: "veyra:desktop:set-teach-session-paused",
   startControlledBrowser: "veyra:desktop:start-controlled-browser",
   getControlledBrowserSession: "veyra:desktop:get-controlled-browser-session",
   stopControlledBrowser: "veyra:desktop:stop-controlled-browser",
+  getTeachCapture: "veyra:desktop:get-teach-capture",
   setSensitiveEntry: "veyra:desktop:set-sensitive-entry",
   lifecycleChanged: "veyra:desktop:lifecycle-changed",
 } as const);
@@ -74,11 +76,14 @@ export type ProjectCommand =
   | { type: "delete"; projectId: string; confirmationName: string };
 export interface ProjectCommandResult { projectId: string | null }
 export interface BrowserRuntimeStatusDto { compatibility: "compatible" | "unknown"; engine: "chromium"; managedBy: "veyra"; source: "electron-bundled"; status: "ready" | "unavailable"; version: string | null }
-export interface TeachSessionDto { environmentId: string; environmentName: string; id: string; name: string; projectId: string; startedAt: string; status: "started" }
+export interface TeachSessionDto { environmentId: string; environmentName: string; id: string; name: string; paused: boolean; projectId: string; startedAt: string; status: "started" }
 export interface StartTeachSessionCommand { environmentId?: string; name: string; projectId: string }
 export interface ControlledBrowserStartCommand { environmentId?: string; projectId: string }
 export interface ControlledBrowserSessionDto { browserEngine: "chromium"; browserVersion: string; environmentName: string; isolationKey: string; launchedAt: string; projectId: string; projectName: string; sessionId: string; status: "running"; url: string }
 export interface ControlledBrowserStopResultDto { sessionId: string | null; status: "stopped" }
+
+export interface TeachCapturedActionDto { actionId: string; capturedAt: string; effect?: { mutations?: number; navigatedTo?: string; titleChanged?: boolean; urlChanged?: string }; kind: "click" | "type" | "select" | "key" | "navigate"; parameterCandidate: { source: "literal"; status: "suggested"; suggestedName: string; value: string } | null; readable: string; resolution: "unique" | "ambiguous" | null; seq: number; sensitive: boolean; target: unknown; targetMeaning: { name: string; role: string; scope: string | null } | null; url: string; value: string | null }
+export interface TeachCaptureDto { actions: TeachCapturedActionDto[]; paused: boolean; recording: boolean; sessionId: string }
 
 export interface VeyraDesktopApi {
   getAppInfo(): Promise<AppInfo>;
@@ -92,9 +97,11 @@ export interface VeyraDesktopApi {
   getBrowserRuntimeStatus(): Promise<BrowserRuntimeStatusDto>;
   getActiveTeachSession(projectId: string): Promise<TeachSessionDto | null>;
   startTeachSession(command: StartTeachSessionCommand): Promise<TeachSessionDto>;
+  setTeachSessionPaused(projectId: string, paused: boolean): Promise<TeachSessionDto>;
   startControlledBrowser(command: ControlledBrowserStartCommand): Promise<ControlledBrowserSessionDto>;
   getControlledBrowserSession(): Promise<ControlledBrowserSessionDto | null>;
   stopControlledBrowser(): Promise<ControlledBrowserStopResultDto>;
+  getTeachCapture(projectId: string): Promise<TeachCaptureDto | null>;
   setSensitiveEntry(active: boolean): Promise<void>;
   onLifecycleChanged(listener: (snapshot: LifecycleSnapshot) => void): () => void;
 }
@@ -122,9 +129,11 @@ export function createVeyraDesktopApi(ipc: RendererIpc): VeyraDesktopApi {
     getBrowserRuntimeStatus: () => ipc.invoke(IPC_CHANNELS.getBrowserRuntimeStatus) as Promise<BrowserRuntimeStatusDto>,
     getActiveTeachSession: (projectId: string) => ipc.invoke(IPC_CHANNELS.getActiveTeachSession, { projectId }) as Promise<TeachSessionDto | null>,
     startTeachSession: (command: StartTeachSessionCommand) => ipc.invoke(IPC_CHANNELS.startTeachSession, command) as Promise<TeachSessionDto>,
+    setTeachSessionPaused: (projectId: string, paused: boolean) => ipc.invoke(IPC_CHANNELS.setTeachSessionPaused, { projectId, paused }) as Promise<TeachSessionDto>,
     startControlledBrowser: (command: ControlledBrowserStartCommand) => ipc.invoke(IPC_CHANNELS.startControlledBrowser, command) as Promise<ControlledBrowserSessionDto>,
     getControlledBrowserSession: () => ipc.invoke(IPC_CHANNELS.getControlledBrowserSession) as Promise<ControlledBrowserSessionDto | null>,
     stopControlledBrowser: () => ipc.invoke(IPC_CHANNELS.stopControlledBrowser) as Promise<ControlledBrowserStopResultDto>,
+    getTeachCapture: (projectId: string) => ipc.invoke(IPC_CHANNELS.getTeachCapture, { projectId }) as Promise<TeachCaptureDto | null>,
     setSensitiveEntry: (active: boolean) => ipc.invoke(IPC_CHANNELS.setSensitiveEntry, { active }) as Promise<void>,
     onLifecycleChanged: (listener: (snapshot: LifecycleSnapshot) => void) => {
       const handleLifecycleChange = (_event: unknown, payload: unknown) => {

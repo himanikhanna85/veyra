@@ -4,8 +4,9 @@ import { mkdirSync, rmSync } from "node:fs";
 import { readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { collectSecretReferenceIds } from "./secret-protection";
+import { normalizeTeachEvent, type NormalizedTeachAction } from "./teach-capture";
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 6;
 const SAFE_ID = /^[a-zA-Z0-9][a-zA-Z0-9._-]{0,127}$/;
 const SECRET_REFERENCE_ID = /^[A-Za-z][A-Za-z0-9_]{0,63}$/;
 
@@ -47,6 +48,7 @@ export interface TeachSessionRecord {
   environmentName: string;
   id: string;
   name: string;
+  paused: boolean;
   projectId: string;
   startedAt: string;
   status: "started";
@@ -229,6 +231,15 @@ export class ProjectStore {
       CREATE UNIQUE INDEX one_active_teach_session_per_project ON teach_sessions(project_id) WHERE status='started';
       PRAGMA user_version = 4;
       COMMIT;`);
+    if (version < 5) this.#database.exec(`BEGIN IMMEDIATE;
+      CREATE TABLE teach_actions (session_id TEXT NOT NULL REFERENCES teach_sessions(id) ON DELETE CASCADE, seq INTEGER NOT NULL CHECK(seq > 0), action_id TEXT NOT NULL, captured_at TEXT NOT NULL, payload_json TEXT NOT NULL, PRIMARY KEY(session_id,seq), UNIQUE(session_id,action_id));
+      CREATE INDEX teach_actions_by_session ON teach_actions(session_id,seq);
+      PRAGMA user_version = 5;
+      COMMIT;`);
+    if (version < 6) this.#database.exec(`BEGIN IMMEDIATE;
+      ALTER TABLE teach_sessions ADD COLUMN paused INTEGER NOT NULL DEFAULT 0 CHECK(paused IN (0,1));
+      PRAGMA user_version = 6;
+      COMMIT;`);
   }
 
   createProject(project: ProjectRecord): ProjectDetail {
@@ -404,16 +415,43 @@ export class ProjectStore {
 
   getActiveTeachSession(projectId: string): TeachSessionRecord | undefined {
     assertSafeId(projectId, "Project id");
-    const row = this.#database.prepare("SELECT t.id,t.project_id,t.environment_id,t.name,t.status,t.started_at,e.name environment_name FROM teach_sessions t JOIN environments e ON e.project_id=t.project_id AND e.id=t.environment_id WHERE t.project_id=? AND t.status='started'").get(projectId) as Record<string, unknown> | undefined;
+    const row = this.#database.prepare("SELECT t.id,t.project_id,t.environment_id,t.name,t.status,t.started_at,t.paused,e.name environment_name FROM teach_sessions t JOIN environments e ON e.project_id=t.project_id AND e.id=t.environment_id WHERE t.project_id=? AND t.status='started'").get(projectId) as Record<string, unknown> | undefined;
     return row ? {
       id: String(row.id),
       projectId: String(row.project_id),
       environmentId: String(row.environment_id),
       environmentName: String(row.environment_name),
       name: String(row.name),
+      paused: Number(row.paused) === 1,
       status: "started",
       startedAt: String(row.started_at),
     } : undefined;
+  }
+
+  setTeachSessionPaused(projectId: string, paused: boolean): TeachSessionRecord {
+    assertSafeId(projectId, "Project id");
+    const result = this.#database.prepare("UPDATE teach_sessions SET paused=? WHERE project_id=? AND status='started'").run(paused ? 1 : 0, projectId);
+    if (result.changes !== 1) throw new Error("No active Teach session for this project");
+    return this.getActiveTeachSession(projectId)!;
+  }
+
+  saveTeachAction(action: NormalizedTeachAction): void {
+    assertSafeId(action.sessionId, "Teach session id");
+    if (!Number.isInteger(action.seq) || action.seq < 1) throw new Error("Teach action sequence is invalid");
+    if (!action.actionId || action.actionId.length > 64) throw new Error("Teach action id is invalid");
+    assertIsoDate(action.capturedAt, "Teach action capture date");
+    if (!this.#database.prepare("SELECT 1 ok FROM teach_sessions WHERE id=?").get(action.sessionId)) throw new Error("Teach session not found");
+    const safeAction = normalizeTeachEvent(action);
+    this.#database.prepare(`INSERT INTO teach_actions (session_id,seq,action_id,captured_at,payload_json) VALUES (?,?,?,?,?)
+      ON CONFLICT(session_id,action_id) DO UPDATE SET seq=excluded.seq,captured_at=excluded.captured_at,payload_json=excluded.payload_json`)
+      .run(safeAction.sessionId, safeAction.seq, safeAction.actionId, safeAction.capturedAt, JSON.stringify(safeAction));
+  }
+
+  listTeachActions(sessionId: string): NormalizedTeachAction[] {
+    assertSafeId(sessionId, "Teach session id");
+    return (this.#database.prepare("SELECT payload_json FROM teach_actions WHERE session_id=? ORDER BY seq").all(sessionId) as Record<string, unknown>[])
+      .map((row) => JSON.parse(String(row.payload_json)) as NormalizedTeachAction)
+      .map((action) => action.sensitive ? { ...action, value: null, parameterCandidate: null } : action);
   }
 
   saveProject(project: ProjectRecord): void {

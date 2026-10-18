@@ -7,10 +7,12 @@ import {
   protocol,
   session,
 } from "electron";
+import { installReticleCapture } from "@reticlehq/electron/main";
 import { randomUUID } from "node:crypto";
 import { basename, join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ControlledBrowser } from "./controlled-browser";
+import { TeachRecorder, pageCaptureScript } from "./teach-capture";
 import { inspectBundledBrowserRuntime } from "./browser-runtime";
 import { FileLifecycleJournal } from "./file-lifecycle-journal";
 import { IPC_CHANNELS } from "./ipc-contract";
@@ -67,15 +69,30 @@ let controlledBrowser: ControlledBrowser | undefined;
 
 const windowManager = new DesktopWindowManager({
   appIconPath,
-  createWindow: (options) =>
-    new BrowserWindow(options) as unknown as DesktopWindowLike,
+  createWindow: (options) => {
+    const window = new BrowserWindow(options);
+    installReticleCapture(window);
+    return window as unknown as DesktopWindowLike;
+  },
   preloadPath,
   rendererUrl,
 });
 const sensitiveEvidenceGuard = new SensitiveEvidenceGuard({
   setContentProtection: (enabled) => windowManager.currentWindow?.setContentProtection(enabled),
 });
+const teachRecorder = new TeachRecorder({
+  nonce: randomUUID(),
+  now: () => new Date(),
+  onAction: (action) => projectStore?.saveTeachAction(action),
+});
 controlledBrowser = new ControlledBrowser({
+  attachCapture: (controlled) => {
+    const { webContents } = controlled as unknown as BrowserWindow;
+    webContents.on("console-message", (event) => teachRecorder.ingest(event.message));
+    webContents.on("dom-ready", () => void webContents.executeJavaScriptInIsolatedWorld(1000, [{ code: pageCaptureScript(teachRecorder.nonce) }]).catch(() => undefined));
+    webContents.on("did-navigate", (_event, url) => teachRecorder.noteNavigation(url));
+    webContents.on("did-navigate-in-page", (_event, url, isMainFrame) => { if (isMainFrame) teachRecorder.noteNavigation(url); });
+  },
   createSessionId: randomUUID,
   createWindow: (options) => new BrowserWindow(options),
   now: () => new Date(),
@@ -133,9 +150,11 @@ async function runSmokeCheck(window: DesktopWindowLike): Promise<void> {
         "getLifecycleSnapshot",
         "getProjectWorkspace",
         "getStorageOverview",
+        "getTeachCapture",
         "onLifecycleChanged",
         "restoreProjectBackup",
         "setSensitiveEntry",
+        "setTeachSessionPaused",
         "startControlledBrowser",
         "startTeachSession",
         "stopControlledBrowser",
@@ -280,6 +299,14 @@ async function startApplication(): Promise<void> {
         startedAt: new Date().toISOString(),
       });
     },
+    setTeachSessionPaused: (projectId, paused) => {
+      if (!projectStore) throw new Error("Project storage is not ready");
+      const teaching = projectStore.setTeachSessionPaused(projectId, paused);
+      if (teachRecorder.sessionId === teaching.id) {
+        if (paused) teachRecorder.pause(); else teachRecorder.resume();
+      }
+      return teaching;
+    },
     startControlledBrowser: (command) => {
       if (!projectStore) throw new Error("Project storage is not ready");
       if (!controlledBrowser) throw new Error("Controlled browser is not ready");
@@ -290,12 +317,27 @@ async function startApplication(): Promise<void> {
         ? project.environments.find((candidate) => candidate.id === command.environmentId)
         : project.environments.find((candidate) => candidate.isActive);
       if (!environment) throw new Error("Project environment not found");
+      const teaching = projectStore.getActiveTeachSession(project.id);
+      if (teaching) {
+        teachRecorder.begin(teaching.id, projectStore.listTeachActions(teaching.id));
+        if (teaching.paused) teachRecorder.pause();
+      } else teachRecorder.end();
       return controlledBrowser.start({
         environmentName: environment.name,
         projectId: project.id,
         projectName: project.name,
         url: environment.baseUrl,
       });
+    },
+    getTeachCapture: (projectId) => {
+      const teaching = projectStore?.getActiveTeachSession(projectId);
+      if (!teaching) return null;
+      return {
+        actions: projectStore?.listTeachActions(teaching.id) ?? teachRecorder.list(teaching.id),
+        paused: teaching.paused,
+        recording: !teaching.paused && teachRecorder.sessionId === teaching.id && controlledBrowser?.getSession() != null,
+        sessionId: teaching.id,
+      };
     },
     getControlledBrowserSession: () => controlledBrowser?.getSession() ?? null,
     stopControlledBrowser: () => controlledBrowser?.stop() ?? { sessionId: null, status: "stopped" },

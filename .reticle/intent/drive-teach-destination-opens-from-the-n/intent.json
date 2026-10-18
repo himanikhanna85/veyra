@@ -1,0 +1,22 @@
+{
+  "intents": {
+    "flow:drive-teach-destination-opens-from-the-navigation": {
+      "binding": {
+        "flow": "drive-teach-destination-opens-from-the-navigation"
+      },
+      "declaredAt": 1791140259184,
+      "id": "flow:drive-teach-destination-opens-from-the-navigation",
+      "source": "decided on the dashboard",
+      "state": "bound",
+      "statement": "Teach destination opens from the navigation",
+      "status": "proved",
+      "subject": "drive-teach-destination-opens-from-the-n",
+      "surface": {
+        "flow": "drive-teach-destination-opens-from-the-navigation"
+      },
+      "updatedAt": 1792037773570
+    }
+  },
+  "subject": "drive-teach-destination-opens-from-the-n",
+  "version": 1
+}

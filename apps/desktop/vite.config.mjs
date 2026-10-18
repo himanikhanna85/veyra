@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
+import { reticle } from '@reticlehq/vite-plugin';
 export default defineConfig({
   build: {
     outDir: "dist/client",
@@ -20,5 +21,5 @@ export default defineConfig({
     include: ["src/**/*.test.{js,jsx}", "electron/**/*.test.ts"],
     setupFiles: ["./src/test/setup.js"],
   },
-  plugins: [react()],
+  plugins: [reticle(), react()],
 });

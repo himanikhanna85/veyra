@@ -12,6 +12,14 @@ application-aware quality intelligence\
 
 # 1. V1 Objective
 
+Approved Jev judgments follow `docs/Veyra_PRD.md` §38 / DEC-25. V1 extends
+the V0 judgments with JEV05 probable failure area, JEV09 assertion relevance,
+JEV10 candidate test ranking, JEV11 failure-pattern assignment and JEV12
+change-to-test relevance, plus JEV08 mode-aware routing. JEV06 intent-preservation
+checks and JEV07 exploration risk classification are approved later work.
+Every judgment retains evidence, uncertainty and consequence-aware review;
+cloud eligibility and deterministic outcomes remain governed by code.
+
 Veyra V1 should prove that the product becomes more useful as it
 accumulates application knowledge.
 

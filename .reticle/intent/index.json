@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "id": "flow:drive-teach-destination-opens-from-the-navigation",
+      "statement": "Teach destination opens from the navigation",
+      "status": "proved",
+      "subject": "drive-teach-destination-opens-from-the-n"
+    },
+    {
+      "id": "inline:teach-destination-opens-from-the-navigation-c12b62fb",
+      "statement": "Teach destination opens from the navigation",
+      "status": "proved",
+      "subject": "unsorted"
+    }
+  ],
+  "version": 1
+}

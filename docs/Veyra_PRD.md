@@ -2337,8 +2337,9 @@ behaviour and known limitations.
 
 Development must follow `groundrules.md`.
 
-Lifecycle implications: 1. `idea.md` remains the brainstorming source.
-2. `PRD.md` is the product-requirements source. 3. Before design
+Lifecycle implications: 1. `docs/idea.md` remains the stakeholder-level
+product idea and brainstorming source. 2. `docs/Veyra_PRD.md` is the
+product-requirements source. 3. Before design
 specification, permission is required to create `design-inspiration`;
 each mockup requires its own go-ahead. 4. Approved design becomes root
 `design_specification.md`. 5. **Only after design approval** is
@@ -2468,6 +2469,71 @@ nomenclature and architectural decisions are accepted.
 The next lifecycle phase is **design**, not coding or TASKS generation.
 After design approval, `TASKS.md` translates these requirements into
 dependency-aware tasks using `E##.T##`, with explicit FR/NFR references.
+
+# 38. Approved Jev Product Judgments
+
+**Decision DEC-25 — Approved 2026-10-04.** Adopt all twelve bounded
+judgment opportunities from the TypeSafe audit behind the capability gateway.
+The current implementation has no production LLM calls; these are approved
+implementation requirements, not shipped replacements or measured savings.
+
+**Reasoning:** repeated semantic decisions can use typed answers instead of
+generating and parsing prose. Jev is the preferred cloud candidate when a
+representative evaluation proves adequate quality, latency and total cost.
+Rules and local algorithms remain first where reliable; Local Only and AI
+disabled modes retain working manual/deterministic paths. Jev remains an
+optional cloud service, subject to project consent, budgets and redaction.
+Approval does not promote V1/later capabilities into the V0 release gate.
+
+## 38.1 Feature and acceptance registry
+
+| ID | Product feature / traceability | Release | Jev judgment and acceptance boundary |
+|---|---|---|---|
+| JEV01 | Parameter suggestions; FR07.06, FR19.01 | V0 | Batch Noul or Choice judgments over extracted literals: parameter, fixed, secret-reference or uncertain. Present Convert/Edit/Keep Fixed; approval precedes binding changes. False positives create noisy parameters and false negatives reduce reuse. Never transmit secret values. |
+| JEV02 | Reusable module suggestions; FR07.07, FR19.04 | V0 | Algorithms generate sequence candidates; Score/Noul judges semantic reuse and boundaries. Preserve sources and require approval before module creation. A wrong judgment must produce a removable proposal, never silently regroup steps. |
+| JEV03 | Locator recovery ranking; FR18.03–FR18.07 | V0 | Score retrieved DOM/accessibility candidates against the taught fingerprint. Include no-match; ambiguous or equivalent candidates produce BLOCKED. Wrong matches can act on a different business object; require governed Use once/Edit and never persist silent repairs. |
+| JEV04 | Ambiguous failure categorization; FR14.02–FR14.07 | V0 | Choice over application failure, blockage, Veyra error, interruption and uncertain, only for evidence not resolved by exact rules. Retain evidence and diagnostic provenance; deterministic outcomes remain authoritative. Wrong labels must not overwrite an executable assertion result or falsely establish PASS. |
+| JEV05 | Probable failure area; FR32.01–FR32.04 | V1 | Choice over UI, API/backend, data, environment, locator, Veyra and unknown, with independent evidence-support judgments. Show as a hypothesis with evidence; errors can misroute investigation but cannot alter base outcome. |
+| JEV06 | Intent preservation during maintenance; FR20.06, FR18.09 | Later | Noul compares approved intent with a proposed target/step change. Flag changes and escalate uncertainty; human approval is mandatory for consequential updates. A false positive could change test meaning, so Jev cannot authorize persistent healing. |
+| JEV07 | Exploration action risk; capability universe Safe Explore | Later | Choice over safe, caution, destructive, prohibited and uncertain. Exact deny rules and permission requirements override the model; uncertain means no action. Evaluate dangerous false-safe errors explicitly. This approval adds risk classification, not autonomous exploration permission. |
+| JEV08 | Intelligence routing; FR19.05–FR19.08, FR34.01–FR34.06 | V0 gateway; V1 modes | Rules first constrain eligible providers by privacy, capability, budget and availability. Choice may route remaining semantic cases to local, Jev, frontier or manual handling. Unsupported/uncertain routes fall back; no model can grant cloud consent. |
+| JEV09 | Candidate assertion relevance; FR31.03–FR31.05 | V1 | Code extracts supported assertion candidates; Noul/Score ranks relevance to the approved goal. User approves additions; reject known bug baselines. Wrong suggestions must not silently weaken checks or create unsupported coverage claims. |
+| JEV10 | Candidate test ranking and redundancy; FR30.02–FR30.06, FR31.01–FR31.02 | V1 | Score relevance/risk and Noul redundancy over generated/composed candidates. Preserve candidate access and provenance; require review. Ranking cannot be the sole coverage gate or silently discard important tests. |
+| JEV11 | Failure-pattern assignment; FR32.06–FR32.07 | V1 | Retrieve known patterns, then Choice among candidates plus none/uncertain. Preserve raw occurrences and support reassignment; distinguish proposed links from approved facts. Wrong grouping must not hide distinct regressions. |
+| JEV12 | Change-to-test relevance; V1 change-aware affected-test list | V1 | Noul/Score ranks retrieved tests/modules against textual changes and approved behavior. Union semantic recommendations with deterministic dependency matches. False negatives must never suppress known affected tests; disclose incomplete semantic coverage. |
+
+## 38.2 Economics and evaluation gates
+
+The official model reference checked 2026-10-04 lists Jev 1.13 at
+$0.042 per million input tokens with output free and text-only input:
+https://docs.typesafe.ai/models. This is a dated planning rate, not a price
+guarantee. At 1,000 total billable input tokens a request costs approximately
+$0.000042; 100,000 such requests cost $4.20 before retries, fallback models,
+gateway charges or other infrastructure. Measure complete state/questions
+and actual provider usage; batching shares state but added questions still cost.
+
+For each registry item, implement labeled representative evaluation cases,
+including no-match, missing evidence, near ties, stale observations, untrusted
+page instructions and service failures. Compare against the existing rules,
+local candidate and frontier baseline where applicable. Record false positives,
+false negatives, abstention/escalation, latency distribution, input usage and
+total workflow cost. Thresholds must follow consequence severity and evaluation
+results; confidence alone is not correctness. Pin the evaluated model version.
+
+Persist capability, question/rubric version, model version, evidence provenance,
+answer probabilities, applied policy and user approval without raw secrets.
+Independent judgments over the same sanitized state should be batched. Cache
+only when evidence, goal, policy and question version are unchanged; invalidate
+on relevant edits. Timeouts, rate limits and unavailable cloud access must leave
+core workflows usable. No production provider key belongs in renderer code.
+
+Do not use Jev for execution, exact assertion evaluation, redaction enforcement,
+permissions, arithmetic, versioning or persistence. Descriptions, novel intent,
+names, test generation and deep diagnosis still need templates or a generative
+model; Jev can judge their candidates but cannot generate arbitrary prose/code.
+The three brainstormed additions (continuous locator monitoring, live Teach
+coaching and semantic regression radar) remain future proposals, not approved
+scope under this twelve-item decision.
 
 # Appendix A --- Traceability
 

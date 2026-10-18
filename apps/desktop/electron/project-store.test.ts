@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { ProjectStore } from "./project-store";
+import type { NormalizedTeachAction } from "./teach-capture";
 
 const stores: ProjectStore[] = [];
 
@@ -26,6 +27,38 @@ async function createStore() {
 afterEach(() => stores.splice(0).forEach((store) => store.close()));
 
 describe("ProjectStore", () => {
+  it("persists normalized Teach actions while excluding protected values from storage and backups", async () => {
+    const created = await createStore();
+    const { root } = created;
+    let store = created.store;
+    store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+    store.startTeachSession({ id: "teach-1", projectId: "shop", environmentId: "default", name: "Sign in", startedAt: "2026-10-04T00:00:00.000Z" });
+    const action: NormalizedTeachAction = {
+      actionId: "secret-1", capturedAt: "2026-10-04T00:00:01.000Z", effect: { navigatedTo: "https://shop.test/done?token=hunter2-never-store" }, kind: "type",
+      parameterCandidate: { source: "literal", status: "suggested", suggestedName: "password", value: "hunter2-never-store" },
+      readable: "hunter2-never-store", resolution: "unique", sensitive: true, seq: 1, sessionId: "teach-1",
+      target: {
+        accessibleName: "hunter2-never-store", attributes: { placeholder: "hunter2-never-store" }, label: "hunter2-never-store", locators: [],
+        page: { title: "hunter2-never-store", url: "https://shop.test/login?password=hunter2-never-store" }, resolution: "unique", role: "textbox",
+        scopes: [{ heading: "hunter2-never-store", label: null, nearbyText: "hunter2-never-store", role: "form", tag: "form" }],
+        structure: { ancestors: "form>input", siblings: "input" }, subtree: "hunter2-never-store", tag: "input", text: "hunter2-never-store", type: "password",
+      },
+      targetMeaning: { name: "hunter2-never-store", role: "textbox", scope: "hunter2-never-store" }, url: "https://shop.test/login?password=hunter2-never-store", value: "hunter2-never-store",
+    };
+
+    store.saveTeachAction(action);
+    expect(store.listTeachActions("teach-1")).toEqual([expect.objectContaining({ value: null, parameterCandidate: null, readable: "Enter protected value in textbox in “form”", targetMeaning: { name: "textbox", role: "textbox", scope: null } })]);
+    store.close();
+    stores.splice(stores.indexOf(store), 1);
+    store = new ProjectStore(root);
+    stores.push(store);
+    expect(store.listTeachActions("teach-1")).toHaveLength(1);
+    const backupPath = join(root, "shop.veyra-project.json");
+    await store.exportProject("shop", backupPath);
+    expect(await readFile(backupPath, "utf8")).not.toContain("hunter2-never-store");
+    expect((await readFile(join(root, "veyra.sqlite"))).toString()).not.toContain("hunter2-never-store");
+  });
+
   it("starts one named Teach session for a project environment and restores it after reopening", async () => {
     const root = await mkdtemp(join(tmpdir(), "veyra-project-store-"));
     let store = new ProjectStore(root);
@@ -36,6 +69,7 @@ describe("ProjectStore", () => {
       environmentName: "Staging",
       id: "teach-1",
       name: "Complete checkout",
+      paused: false,
       projectId: "project-1",
       startedAt: "2026-09-17T08:00:00.000Z",
       status: "started",
@@ -47,6 +81,15 @@ describe("ProjectStore", () => {
     store = new ProjectStore(root);
     stores.push(store);
     expect(store.getActiveTeachSession("project-1")?.name).toBe("Complete checkout");
+  });
+
+  it("persists whether an active Teach session is paused", async () => {
+    const { store } = await createStore();
+    store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
+    store.startTeachSession({ id: "teach-1", projectId: "shop", environmentId: "default", name: "Checkout", startedAt: "2026-10-04T00:00:00.000Z" });
+
+    expect(store.setTeachSessionPaused("shop", true)).toMatchObject({ id: "teach-1", paused: true });
+    expect(store.setTeachSessionPaused("shop", false)).toMatchObject({ id: "teach-1", paused: false });
   });
 
   it("creates, edits and lists projects with one active environment", async () => {
@@ -134,11 +177,13 @@ describe("ProjectStore", () => {
 
   it("builds project overview health from persisted definitions and runs", async () => {
     const { store } = await createStore();
+    const recent = new Date(Date.now() - 60_000).toISOString();
+    const moreRecent = new Date(Date.now() - 30_000).toISOString();
     store.createProject({ id: "shop", name: "Shop", applicationUrl: "https://shop.test", environmentName: "Staging" });
     store.saveDefinition("shop", "test", "checkout", 1, {});
     store.saveDefinition("shop", "module", "login", 1, { name: "Sign in" });
-    store.recordCompletedRun({ id: "run-1", projectId: "shop", completedAt: "2026-09-15T10:00:00.000Z", definitionSnapshot: {}, outcome: "PASS" });
-    store.recordCompletedRun({ id: "run-2", projectId: "shop", completedAt: "2026-09-15T11:00:00.000Z", definitionSnapshot: {}, outcome: "FAIL" });
+    store.recordCompletedRun({ id: "run-1", projectId: "shop", completedAt: recent, definitionSnapshot: {}, outcome: "PASS" });
+    store.recordCompletedRun({ id: "run-2", projectId: "shop", completedAt: moreRecent, definitionSnapshot: {}, outcome: "FAIL" });
     expect(store.getProjectOverview("shop")).toMatchObject({ tests: 1, modules: 1, recentRuns: 2, latestOutcome: "FAIL", passRate: 50 });
     expect(store.getProjectOverview("shop")).toMatchObject({ outcomeCounts: { PASS: 1, FAIL: 1 }, recentRunItems: [{ id: "run-2", outcome: "FAIL" }, { id: "run-1", outcome: "PASS" }], moduleItems: [{ id: "login", name: "Sign in" }] });
   });
@@ -151,7 +196,7 @@ describe("ProjectStore", () => {
 
     const reopened = new ProjectStore(root);
     stores.push(reopened);
-    expect(reopened.schemaVersion).toBe(4);
+    expect(reopened.schemaVersion).toBe(6);
     expect(reopened.getProject("project-1")).toMatchObject({ name: "Shop", environmentName: "Staging" });
   });
 

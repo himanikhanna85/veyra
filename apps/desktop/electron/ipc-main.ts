@@ -1,4 +1,4 @@
-import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type BrowserRuntimeStatusDto, type ControlledBrowserSessionDto, type ControlledBrowserStartCommand, type ControlledBrowserStopResultDto, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StartTeachSessionCommand, type StorageOverview, type TeachSessionDto } from "./ipc-contract";
+import { IPC_CHANNELS, type AppInfo, type BackupDialogResult, type BrowserRuntimeStatusDto, type ControlledBrowserSessionDto, type ControlledBrowserStartCommand, type ControlledBrowserStopResultDto, type EvidenceCleanupResult, type LifecycleSnapshot, type ProjectCommand, type ProjectCommandResult, type ProjectWorkspace, type StartTeachSessionCommand, type TeachCaptureDto, type StorageOverview, type TeachSessionDto } from "./ipc-contract";
 
 export interface IpcMainEventLike {
   senderFrame?: {
@@ -26,9 +26,11 @@ interface DesktopIpcDependencies {
   getBrowserRuntimeStatus(): BrowserRuntimeStatusDto | Promise<BrowserRuntimeStatusDto>;
   getActiveTeachSession(projectId: string): TeachSessionDto | null | Promise<TeachSessionDto | null>;
   startTeachSession(command: StartTeachSessionCommand): TeachSessionDto | Promise<TeachSessionDto>;
+  setTeachSessionPaused(projectId: string, paused: boolean): TeachSessionDto | Promise<TeachSessionDto>;
   startControlledBrowser(command: ControlledBrowserStartCommand): ControlledBrowserSessionDto | Promise<ControlledBrowserSessionDto>;
   getControlledBrowserSession(): ControlledBrowserSessionDto | null | Promise<ControlledBrowserSessionDto | null>;
   stopControlledBrowser(): ControlledBrowserStopResultDto | Promise<ControlledBrowserStopResultDto>;
+  getTeachCapture(projectId: string): TeachCaptureDto | null | Promise<TeachCaptureDto | null>;
   setSensitiveEntry(active: boolean): void | Promise<void>;
   ipcMain: IpcMainLike;
   isTrustedSender(url: string): boolean;
@@ -46,9 +48,11 @@ export function registerDesktopIpc({
   getBrowserRuntimeStatus,
   getActiveTeachSession,
   startTeachSession,
+  setTeachSessionPaused,
   startControlledBrowser,
   getControlledBrowserSession,
   stopControlledBrowser,
+  getTeachCapture,
   setSensitiveEntry,
   ipcMain,
   isTrustedSender,
@@ -157,12 +161,22 @@ export function registerDesktopIpc({
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return startTeachSession(validateStartTeachSession(payload));
   });
+  ipcMain.handle(IPC_CHANNELS.setTeachSessionPaused, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    const value = payload as Record<string, unknown> | null;
+    if (typeof value?.paused !== "boolean") throw new Error("Invalid Teach session pause state");
+    return setTeachSessionPaused(validateProjectId(value.projectId), value.paused);
+  });
   ipcMain.handle(IPC_CHANNELS.startControlledBrowser, async (event, payload) => {
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     return startControlledBrowser(validateControlledBrowserStart(payload));
   });
   ipcMain.handle(IPC_CHANNELS.getControlledBrowserSession, trustedHandler(getControlledBrowserSession));
   ipcMain.handle(IPC_CHANNELS.stopControlledBrowser, trustedHandler(stopControlledBrowser));
+  ipcMain.handle(IPC_CHANNELS.getTeachCapture, async (event, payload) => {
+    if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
+    return getTeachCapture(validateProjectId((payload as Record<string, unknown> | null)?.projectId));
+  });
   ipcMain.handle(IPC_CHANNELS.setSensitiveEntry, async (event, payload) => {
     if (!isTrustedSender(event.senderFrame?.url ?? "")) throw new Error("Untrusted IPC sender");
     const active = (payload as Record<string, unknown> | null)?.active;
@@ -182,9 +196,11 @@ export function registerDesktopIpc({
     ipcMain.removeHandler(IPC_CHANNELS.getBrowserRuntimeStatus);
     ipcMain.removeHandler(IPC_CHANNELS.getActiveTeachSession);
     ipcMain.removeHandler(IPC_CHANNELS.startTeachSession);
+    ipcMain.removeHandler(IPC_CHANNELS.setTeachSessionPaused);
     ipcMain.removeHandler(IPC_CHANNELS.startControlledBrowser);
     ipcMain.removeHandler(IPC_CHANNELS.getControlledBrowserSession);
     ipcMain.removeHandler(IPC_CHANNELS.stopControlledBrowser);
+    ipcMain.removeHandler(IPC_CHANNELS.getTeachCapture);
     ipcMain.removeHandler(IPC_CHANNELS.setSensitiveEntry);
   };
 }

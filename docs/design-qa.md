@@ -1,10 +1,10 @@
 # Veyra D04 Design QA
 
 **Source visual truth:** `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` (`overview`, prototype rail excluded)  
-**Normalized source screenshot:** `apps/desktop/source-overview-1440x960.png`  
-**Implementation screenshot:** `apps/desktop/overview-1440x960-final.png`  
-**Responsive screenshot:** `apps/desktop/overview-1280x800.png`  
-**Combined comparison:** `apps/desktop/design-qa-comparison-2.png`  
+**Normalized source screenshot:** `archive/design-assets/desktop/source-overview-1440x960.png`  
+**Implementation screenshot:** `archive/design-assets/desktop/overview-1440x960-final.png`  
+**Responsive screenshot:** `archive/design-assets/desktop/overview-1280x800.png`  
+**Combined comparison:** `archive/design-assets/desktop/design-qa-comparison-2.png`  
 **State:** Overview, default project, no overlay open  
 **Viewport:** 1440 × 960 CSS px  
 **Density normalization:** source 1440 × 960 px and implementation 1440 × 960 px at device scale factor 1; no resampling
@@ -67,8 +67,8 @@ final result: passed
 # Veyra D08 Storage Button Spacing QA
 
 **Source:** user capture `Screenshot 2026-09-15 at 10.22.52 PM.png`  
-**Implementation:** `apps/desktop/design-qa-d08-button-spacing.png`  
-**Comparison:** `apps/desktop/design-qa-d08-comparison.png`
+**Implementation:** `archive/design-assets/desktop/design-qa-d08-button-spacing.png`  
+**Comparison:** `archive/design-assets/desktop/design-qa-d08-comparison.png`
 
 - Root cause: storage actions placed Lucide icons inside the label child instead
   of using the shared Button icon slot, so the button's flex gap could not apply.
@@ -85,7 +85,7 @@ final result: passed
 # Veyra D06 Sidebar Brand QA
 
 **Source assets:** `docs/brand/veyra_tr_icon.png`, `docs/brand/veyra_rectlogo.png`  
-**Implementation screenshot:** `apps/desktop/design-qa-brand-1440x960.png`  
+**Implementation screenshot:** `archive/design-assets/desktop/design-qa-brand-1440x960.png`  
 **State:** Overview, default project, no overlay open  
 **Viewport:** 1440 × 960 CSS px
 

@@ -33,9 +33,11 @@ describe("Veyra desktop preload interface", () => {
       "getBrowserRuntimeStatus",
       "getActiveTeachSession",
       "startTeachSession",
+      "setTeachSessionPaused",
       "startControlledBrowser",
       "getControlledBrowserSession",
       "stopControlledBrowser",
+      "getTeachCapture",
       "setSensitiveEntry",
       "onLifecycleChanged",
     ]);
@@ -51,9 +53,11 @@ describe("Veyra desktop preload interface", () => {
     await api.getBrowserRuntimeStatus();
     await api.getActiveTeachSession("project-1");
     await api.startTeachSession({ projectId: "project-1", environmentId: "staging", name: "Complete checkout" });
+    await api.setTeachSessionPaused("project-1", true);
     await api.startControlledBrowser({ projectId: "project-1", environmentId: "staging" });
     await api.getControlledBrowserSession();
     await api.stopControlledBrowser();
+    await api.getTeachCapture("project-1");
     await api.setSensitiveEntry(true);
     expect(invoke.mock.calls).toEqual([
       [IPC_CHANNELS.getAppInfo],
@@ -67,9 +71,11 @@ describe("Veyra desktop preload interface", () => {
       [IPC_CHANNELS.getBrowserRuntimeStatus],
       [IPC_CHANNELS.getActiveTeachSession, { projectId: "project-1" }],
       [IPC_CHANNELS.startTeachSession, { projectId: "project-1", environmentId: "staging", name: "Complete checkout" }],
+      [IPC_CHANNELS.setTeachSessionPaused, { projectId: "project-1", paused: true }],
       [IPC_CHANNELS.startControlledBrowser, { projectId: "project-1", environmentId: "staging" }],
       [IPC_CHANNELS.getControlledBrowserSession],
       [IPC_CHANNELS.stopControlledBrowser],
+      [IPC_CHANNELS.getTeachCapture, { projectId: "project-1" }],
       [IPC_CHANNELS.setSensitiveEntry, { active: true }],
     ]);
 

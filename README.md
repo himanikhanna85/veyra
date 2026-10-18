@@ -96,6 +96,7 @@ Explore state and transition coverage, learned invariants, safe exploration, cha
 
 The main project documents are:
 
+- [`idea.md`](docs/idea.md)
 - [`01_Product_Thesis_and_Innovation_Pillars.md`](docs/01_Product_Thesis_and_Innovation_Pillars.md)
 - [`02_Competitive_Validation.md`](docs/02_Competitive_Validation.md)
 - [`03_Capability_Universe.md`](docs/03_Capability_Universe.md)
@@ -110,6 +111,9 @@ The main project documents are:
 - [`tasks.md`](tasks.md)
 - [`status_quo.md`](status_quo.md)
 - [`commands.md`](commands.md)
+
+Historical context, superseded handoffs, intermediate research and old design
+captures are indexed under [`archive/`](archive/README.md).
 
 The PRD is the implementation requirements baseline; `tasks.md` is the
 traceable delivery tracker.

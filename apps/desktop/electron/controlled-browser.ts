@@ -50,19 +50,22 @@ export interface ControlledBrowserWindowLike {
 }
 
 interface ControlledBrowserDependencies {
+  attachCapture?(window: ControlledBrowserWindowLike): void;
   createSessionId(): string;
   createWindow(options: ControlledBrowserWindowOptions): ControlledBrowserWindowLike;
   now(): Date;
 }
 
 export class ControlledBrowser {
+  readonly #attachCapture: ((window: ControlledBrowserWindowLike) => void) | undefined;
   readonly #createSessionId: () => string;
   readonly #createWindow: (options: ControlledBrowserWindowOptions) => ControlledBrowserWindowLike;
   readonly #now: () => Date;
   #session: ControlledBrowserSession | null = null;
   #window: ControlledBrowserWindowLike | null = null;
 
-  constructor({ createSessionId, createWindow, now }: ControlledBrowserDependencies) {
+  constructor({ attachCapture, createSessionId, createWindow, now }: ControlledBrowserDependencies) {
+    this.#attachCapture = attachCapture;
     this.#createSessionId = createSessionId;
     this.#createWindow = createWindow;
     this.#now = now;
@@ -88,6 +91,7 @@ export class ControlledBrowser {
       width: 1280,
     });
     this.#window = window;
+    this.#attachCapture?.(window);
     window.on("closed", () => {
       if (this.#window === window) {
         this.#window = null;

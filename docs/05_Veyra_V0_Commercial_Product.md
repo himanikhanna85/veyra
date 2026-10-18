@@ -14,6 +14,12 @@ evidence-backed execution + human-governed intelligence
 
 # 1. V0 Objective
 
+Approved intelligence implementation follows `docs/Veyra_PRD.md` §38 / DEC-25:
+JEV01 parameter proposals, JEV02 module proposals, JEV03 locator ranking,
+JEV04 ambiguous failure categorization and JEV08 capability routing. Jev is
+optional under cloud policy, with evaluated thresholds and manual/local
+fallback. These features retain explicit review and deterministic execution.
+
 Veyra V0 must answer one customer question exceptionally well:
 
 > **Can a manual QA professional teach a real browser workflow once,

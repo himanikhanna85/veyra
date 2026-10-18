@@ -9,9 +9,15 @@ Done = completed and verified/documented.
 
 ## Pending
 
-None.
+- [ ] E06.T04 — Render the readable teaching timeline (`P0`; `FR06.04`; `SCR-TEACH`).
+- [ ] REVIEW01 — Read the core product documents and provide a first-pass product assessment; await Anand's review (`docs/_wip_veyra_product_review.md`; no scope decisions).
+- [ ] REVIEW02 — Research prepared for Anand's review: 16 competitor evaluations, 64 cited sources, pricing/moat comparison and opportunity/need-gap analysis (`outputs/veyra-product-review/02_competitive_research.md`; `03_competitor_comparison.csv`; no product decisions).
 
 ## Not Started
+
+### Product positioning review
+
+- [ ] REVIEW03 — Brainstorm Veyra's identity, user outcomes, main features and differentiation after the competitive review; record approved decisions in PRD and tasks (`docs/_wip_veyra_product_review.md`).
 
 ### M01 — Desktop Foundation & Persistence
 
@@ -32,11 +38,10 @@ None.
 
 #### E06 — Teach Recorder
 
-- [ ] E06.T02 — Capture meaningful browser actions with sanitized multi-signal DOM/accessibility target fingerprints and ambiguity-safe evidence (`P0`; `FR06.02`; `FR18.01`; `FR18.07`).
-- [ ] E06.T03 — Normalize recorded events into semantic action records (`P0`; `FR06.03`).
-- [ ] E06.T04 — Render the readable teaching timeline (`P0`; `FR06.04`; `SCR-TEACH`).
-- [ ] E06.T05 — Filter recorder noise and duplicate events (`P0`; `FR06.05`).
-- [ ] E06.T06 — Pause and resume an active teaching session (`P0`; `FR06.06`).
+- [x] E06.T02 — Capture meaningful browser actions with sanitized multi-signal DOM/accessibility target fingerprints and ambiguity-safe evidence (`P0`; `FR06.02`; `FR18.01`; `FR18.07`).
+- [x] E06.T03 — Normalize and persist recorded events as stable semantic action records with protected-value exclusion (`P0`; `FR06.03`).
+- [x] E06.T05 — Filter recorder noise and duplicate events (`P0`; `FR06.05`).
+- [x] E06.T06 — Pause and resume an active teaching session (`P0`; `FR06.06`).
 - [ ] E06.T07 — Remove an incorrect recorded step (`P0`; `FR06.07`).
 - [ ] E06.T08 — Insert a manual step while teaching (`P0`; `FR06.08`).
 - [ ] E06.T09 — Add a checkpoint during teaching (`P0`; `FR06.09`).
@@ -207,6 +212,20 @@ None.
 ### M13 — AI/Intelligence & Governance
 
 #### E19 — V0 Intelligence Assistance
+
+- [ ] JEV01 — Evaluate and implement parameter-candidate judgments with Convert/Edit/Keep Fixed review (`V0`; PRD §38.1; FR07.06/FR19.01).
+- [ ] JEV02 — Evaluate and implement reusable-sequence judgments over algorithmic candidates (`V0`; PRD §38.1; FR07.07/FR19.04).
+- [ ] JEV03 — Evaluate locator candidate ranking with no-match, near-tie BLOCKED and governed recovery (`V0`; PRD §38.1; FR18.03–FR18.07).
+- [ ] JEV04 — Evaluate ambiguous failure categorization without overriding deterministic outcomes (`V0`; PRD §38.1; FR14.02–FR14.07).
+- [ ] JEV05 — Evaluate evidence-backed probable failure-area classification (`V1`; PRD §38.1; FR32.01–FR32.04).
+- [ ] JEV06 — Evaluate intent-preservation judgments with mandatory review of consequential changes (`Later`; PRD §38.1; FR20.06/FR18.09).
+- [ ] JEV07 — Evaluate exploration risk classification with exact deny rules and fail-closed uncertainty (`Later`; PRD §38.1).
+- [ ] JEV08 — Implement policy-constrained capability routing, provider adapter, batching, versioned cache and fallbacks (`V0/V1`; PRD §38.1–38.2; FR19.05/FR34).
+- [ ] JEV09 — Evaluate candidate assertion relevance with approval and bug-baseline rejection (`V1`; PRD §38.1; FR31.03–FR31.05).
+- [ ] JEV10 — Evaluate candidate test relevance/risk ranking and redundancy judgments (`V1`; PRD §38.1; FR30/FR31).
+- [ ] JEV11 — Evaluate failure-pattern assignment with none/uncertain and reassignment (`V1`; PRD §38.1; FR32.06–FR32.07).
+- [ ] JEV12 — Evaluate change-to-test relevance without suppressing deterministic dependency matches (`V1`; PRD §38.1).
+- [ ] JEV.EVAL — Establish per-capability labeled evaluations, thresholds, provenance, latency and total-cost baselines before rollout (`PRD §38.2`; NFR90.15).
 
 - [ ] E19.T01 — Suggest parameter candidates from teaching evidence (`P0`; `FR19.01`).
 - [ ] E19.T02 — Suggest readable action descriptions (`P0`; `FR19.02`).
@@ -421,6 +440,11 @@ None.
 
 ## Done
 
+- [x] REPO.CLEAN01 — Reduced root clutter through a documented archive, moved active reference material into `docs/`, and preserved source, current research, Reticle state and reproducible artifacts (`archive/README.md`; `groundrules.md`).
+- [x] DOC.IDEA01 — Created `docs/idea.md` as Veyra's stakeholder-level product narrative and made repository governance point to it (`docs/Veyra_PRD.md` §31; `groundrules.md`).
+- [x] DOC.HANDOFF01 — Created the redacted Claude continuation brief at root `handovertoclaude.md` (`groundrules.md`; `status_quo.md`; `jevprotocol.md`).
+- [x] DOC.JEV01 — Documented all 12 approved Jev product judgments, release scope, safeguards and evaluation gates in PRD §38 and V0/V1 product features (`DEC-25`).
+
 - [x] P03 — Adopted the repository-wide Jev/TypeSafe development protocol with confidence escalation and measurable usage/savings reporting (`DEC-24`; `jevprotocol.md`; `groundrules.md`).
 - [x] E06.T01 — Started and restored one named Teach session per project, bound to its active environment (`P0`; `FR06.01`; `SCR-TEACH`).
 - [x] E04.T07 — Enforced evidence-write rejection and OS window capture protection during password-masked secret entry (`P1`; `FR04.07`).
@@ -439,7 +463,7 @@ None.
 - [x] E03.T04 — Added environment-scoped non-secret variable management and portable backup (`P0`; `FR03.04`).
 - [x] E03.T05 — Connected the project switcher and Overview to persisted tests, modules, recent outcomes, last-run and seven-day health data, including empty/loading/error states (`P0`; `FR03.05`; `SCR-OVERVIEW`).
 - [x] E03.T06 — Added two-step archive and exact-name permanent deletion (`P1`; `FR03.06`).
-- [x] D08 — Corrected icon-to-label spacing in the Data screen Restore project, Refresh, Export and Clean Evidence actions (`DEC-21`; `design_specification.md`; `design-qa.md`).
+- [x] D08 — Corrected icon-to-label spacing in the Data screen Restore project, Refresh, Export and Clean Evidence actions (`DEC-21`; `design_specification.md`; `docs/design-qa.md`).
 - [x] D07 — Simplified E02 testing to one repository-root command with visible root-level test artifacts and plain-language output (`FR02.01`–`FR02.07`; `commands.md`).
 - [x] E02.T01 — Persisted structured project data locally in versioned SQLite storage (`P0`; `FR02.01`).
 - [x] E02.T02 — Stored screenshots/traces/reports in a separate evidence filesystem tree (`P0`; `FR02.02`).
@@ -448,14 +472,14 @@ None.
 - [x] E02.T05 — Exported complete checksummed project backups in the documented Veyra format (`P1`; `FR02.05`).
 - [x] E02.T06 — Restored validated backups transactionally with partial-evidence cleanup (`P1`; `FR02.06`).
 - [x] E02.T07 — Added local storage inspection, native backup/restore and two-step old-evidence cleanup in Data (`P1`; `FR02.07`).
-- [x] D06 — Replaced the generic sidebar lockup with the approved transparent Veyra mark and exact rectlogo-derived wordmark artwork (`DEC-23`, `SCR-OVERVIEW`; `design_specification.md`; `design-qa.md`).
+- [x] D06 — Replaced the generic sidebar lockup with the approved transparent Veyra mark and exact rectlogo-derived wordmark artwork (`DEC-23`, `SCR-OVERVIEW`; `design_specification.md`; `docs/design-qa.md`).
 - [x] D05 — Applied and package-verified the approved Veyra mark for the development window, macOS bundle/DMG and Windows executable/installer (`DEC-22`, `FR22.01`; `design_specification.md`).
 - [x] E01.T01 — Delivered and restart-tested the installable Electron desktop shell (`P0`; `DEC-01`, `FR01.01`).
 - [x] E01.T02 — Enforced sandboxed, context-isolated, Node-free renderer execution (`P0`; `DEC-01`, `FR01.02`).
 - [x] E01.T03 — Added the explicit typed preload/main API and event boundary (`P0`; `DEC-01`, `FR01.03`).
 - [x] E01.T04 — Implemented single-instance window lifecycle, bounded cleanup and interrupted-operation recovery (`P0`; `DEC-01`, `FR01.04`).
 - [x] E01.T05 — Produced macOS arm64/x64 and Windows x64 installer artifacts with native CI packaging and documented unsigned/runtime-validation limits (`P1`; `DEC-01`, `FR01.05`).
-- [x] D04 — Implemented and verified the approved Veyra tokens, accessible primitives, global desktop shell and Overview reference screen (`DEC-21`, `NFR90.01`–`NFR90.03`; `design_specification.md`; `design-qa.md`).
+- [x] D04 — Implemented and verified the approved Veyra tokens, accessible primitives, global desktop shell and Overview reference screen (`DEC-21`, `NFR90.01`–`NFR90.03`; `design_specification.md`; `docs/design-qa.md`).
 - [x] D01 — Compared Veyra V0/V1 with Spur and prepared the seven-screen Claude Design brief (`DEC-17`; `docs/Spur_Parity_and_Claude_Design_Prompt.md`).
 - [x] D02 — Reviewed and approved the seven-screen `Veyra Prototype.dc.html` direction as the final Veyra product language (`DEC-21`).
 - [x] D03 — Formalized the approved prototype and design-system captures in root `design_specification.md` (`DEC-21`, `NFR90.01`–`NFR90.03`).

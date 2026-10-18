@@ -1,0 +1,31 @@
+{
+  "intents": {
+    "inline:teach-destination-opens-from-the-navigation-c12b62fb": {
+      "binding": {
+        "equals": "teach",
+        "kind": "state",
+        "path": "activeSection",
+        "store": "veyra"
+      },
+      "declaredAt": 1791126029717,
+      "id": "inline:teach-destination-opens-from-the-navigation-c12b62fb",
+      "provenBy": {
+        "at": 1791126030207,
+        "grade": "state",
+        "verdictId": "reticle_act_and_wait:1791126030207"
+      },
+      "state": "proved",
+      "statement": "Teach destination opens from the navigation",
+      "status": "proved",
+      "subject": "unsorted",
+      "surface": {
+        "files": [
+          "src/design-system/AppShell.jsx"
+        ]
+      },
+      "updatedAt": 1791126030209
+    }
+  },
+  "subject": "unsorted",
+  "version": 1
+}

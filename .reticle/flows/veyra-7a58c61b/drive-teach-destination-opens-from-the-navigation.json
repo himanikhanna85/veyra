@@ -1,0 +1,44 @@
+{
+  "version": 2,
+  "name": "drive-teach-destination-opens-from-the-navigation",
+  "projectId": "veyra-7a58c61b",
+  "createdAt": 1791140259172,
+  "steps": [
+    {
+      "tool": "reticle_act",
+      "anchor": {
+        "kind": "role",
+        "role": "button",
+        "name": "Teach"
+      },
+      "args": {},
+      "action": "click",
+      "expect": {
+        "kind": "state",
+        "store": "veyra",
+        "path": "activeSection",
+        "equals": "teach"
+      },
+      "page": "/"
+    }
+  ],
+  "startPath": "/",
+  "intent": "Teach destination opens from the navigation",
+  "requires": [
+    {
+      "kind": "route",
+      "pathname": "/"
+    }
+  ],
+  "ensures": [
+    {
+      "kind": "route",
+      "pathname": "/"
+    }
+  ],
+  "author": {
+    "agent": "claude-code",
+    "person": "anand@cadenceinfotech.com"
+  },
+  "intentId": "flow:drive-teach-destination-opens-from-the-navigation"
+}

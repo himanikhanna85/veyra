@@ -41,7 +41,9 @@ describe("desktop main-process IPC", () => {
     const getControlledBrowserSession = vi.fn(() => null);
     const stopControlledBrowser = vi.fn(() => ({ sessionId: "session-1", status: "stopped" as const }));
     const getActiveTeachSession = vi.fn(() => null);
-    const startTeachSession = vi.fn(() => ({ id: "teach-1", projectId: "shop", environmentId: "staging", environmentName: "Staging", name: "Complete checkout", startedAt: "2026-09-17T08:00:00.000Z", status: "started" as const }));
+    const startTeachSession = vi.fn(() => ({ id: "teach-1", projectId: "shop", environmentId: "staging", environmentName: "Staging", name: "Complete checkout", paused: false, startedAt: "2026-09-17T08:00:00.000Z", status: "started" as const }));
+    const setTeachSessionPaused = vi.fn(() => ({ id: "teach-1", projectId: "shop", environmentId: "staging", environmentName: "Staging", name: "Complete checkout", paused: true, startedAt: "2026-09-17T08:00:00.000Z", status: "started" as const }));
+    const getTeachCapture = vi.fn(() => null);
     const setSensitiveEntry = vi.fn();
     const dispose = registerDesktopIpc({
       getAppInfo: () => appInfo,
@@ -55,9 +57,11 @@ describe("desktop main-process IPC", () => {
       getBrowserRuntimeStatus: () => ({ compatibility: "compatible", engine: "chromium", managedBy: "veyra", source: "electron-bundled", status: "ready", version: "144.0.7559.97" }),
       getActiveTeachSession,
       startTeachSession,
+      setTeachSessionPaused,
       startControlledBrowser,
       getControlledBrowserSession,
       stopControlledBrowser,
+      getTeachCapture,
       setSensitiveEntry,
       ipcMain,
       isTrustedSender: (url) => url === "veyra://app/index.html",
@@ -75,9 +79,11 @@ describe("desktop main-process IPC", () => {
       IPC_CHANNELS.getBrowserRuntimeStatus,
       IPC_CHANNELS.getActiveTeachSession,
       IPC_CHANNELS.startTeachSession,
+      IPC_CHANNELS.setTeachSessionPaused,
       IPC_CHANNELS.startControlledBrowser,
       IPC_CHANNELS.getControlledBrowserSession,
       IPC_CHANNELS.stopControlledBrowser,
+      IPC_CHANNELS.getTeachCapture,
       IPC_CHANNELS.setSensitiveEntry,
     ]);
     await expect(
@@ -103,6 +109,9 @@ describe("desktop main-process IPC", () => {
     ).resolves.toBeNull();
     await handlers.get(IPC_CHANNELS.startTeachSession)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "shop", environmentId: "staging", name: "Complete checkout" });
     expect(startTeachSession).toHaveBeenCalledWith({ projectId: "shop", environmentId: "staging", name: "Complete checkout" });
+    await handlers.get(IPC_CHANNELS.setTeachSessionPaused)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "shop", paused: true });
+    expect(setTeachSessionPaused).toHaveBeenCalledWith("shop", true);
+    await expect(handlers.get(IPC_CHANNELS.setTeachSessionPaused)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "shop", paused: "yes" })).rejects.toThrow(/pause state/i);
     await expect(
       handlers.get(IPC_CHANNELS.startTeachSession)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "../bad", name: "Workflow" }),
     ).rejects.toThrow(/invalid/i);
@@ -129,12 +138,16 @@ describe("desktop main-process IPC", () => {
     expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "shop_password", description: "Shopper login" });
     await handlers.get(IPC_CHANNELS.applyProjectCommand)?.({ senderFrame: { url: "veyra://app/index.html" } }, { type: "save-secret-reference", projectId: "shop", id: "api_token" });
     expect(applyProjectCommand).toHaveBeenLastCalledWith({ type: "save-secret-reference", projectId: "shop", id: "api_token", description: undefined });
+    await handlers.get(IPC_CHANNELS.getTeachCapture)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "shop" });
+    expect(getTeachCapture).toHaveBeenCalledWith("shop");
+    await expect(handlers.get(IPC_CHANNELS.getTeachCapture)?.({ senderFrame: { url: "veyra://app/index.html" } }, { projectId: "../x" })).rejects.toThrow(/invalid project/i);
+    await expect(handlers.get(IPC_CHANNELS.getTeachCapture)?.({ senderFrame: { url: "https://attacker.example/" } }, { projectId: "shop" })).rejects.toThrow(/untrusted/i);
     await handlers.get(IPC_CHANNELS.setSensitiveEntry)?.({ senderFrame: { url: "veyra://app/index.html" } }, { active: true });
     expect(setSensitiveEntry).toHaveBeenCalledWith(true);
     await expect(handlers.get(IPC_CHANNELS.setSensitiveEntry)?.({ senderFrame: { url: "https://attacker.example/" } }, { active: false })).rejects.toThrow(/untrusted/i);
 
     dispose();
-    expect(removeHandler).toHaveBeenCalledTimes(15);
+    expect(removeHandler).toHaveBeenCalledTimes(17);
     expect(handlers).toHaveLength(0);
   });
 });

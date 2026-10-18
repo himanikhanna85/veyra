@@ -22,7 +22,9 @@
 - E05 Controlled Browser is complete. The desktop main process owns a `ControlledBrowser` module that opens the active project environment in a separate headed Chromium window, returns session metadata to the renderer, shows status in Overview and stops the session safely.
 - Each controlled browser launch uses a fresh non-persistent Electron partition keyed by project id and session id, so cookies/localStorage/session state do not bleed across projects or sessions. Veyra manages Electron's version-pinned, BrowserWindow-compatible bundled Chromium, reports its source/version/compatibility/readiness through typed IPC and blocks launch with a visible unavailable state if runtime detection fails.
 - E06.T01 starts the Teach Recorder epic. The Teach destination creates one named active session per project, binds it to the active environment, persists it in SQLite schema v4 and restores its started-session header after an application restart. It truthfully avoids claiming that recording or a browser is active; controlled-browser action capture remains E06.T02.
-- E06.T02 now has a locked capture contract: target-bearing events retain sanitized DOM/accessibility fingerprints, meaningful ancestor context, bounded subtree structure, multiple locator candidates and post-action effects. Repeated same-name controls must remain distinguishable; low-confidence matches block rather than guess, and V0 cannot silently persist a healed baseline.
+- E06.T02 is implemented: `electron/teach-capture.ts` injects a self-contained capture script into the controlled browser's isolated world and a main-process `TeachRecorder` validates (per-session nonce) and bounds raw events before E06.T03 normalization/persistence. The renderer polls `getTeachCapture` and shows readable steps; ambiguous targets are flagged and carry no index locator; sensitive values never leave the page. Original contract: target-bearing events retain sanitized DOM/accessibility fingerprints, meaningful ancestor context, bounded subtree structure, multiple locator candidates and post-action effects. Repeated same-name controls must remain distinguishable; low-confidence matches block rather than guess, and V0 cannot silently persist a healed baseline.
+- E06.T03 is implemented. Deterministic normalization turns recorder events into stable semantic records with readable wording, scoped target meaning, ambiguity state and literal parameter suggestions. ProjectStore schema v5 persists ordered actions and restores their timeline after restart; protected values, content-bearing sensitive fingerprints and URL query values are stripped again at the persistence boundary and never enter project backups. Reticle verified the persisted readable step after a full Electron restart.
+- E06.T04 is implemented and awaiting user verification. The Teach timeline now orders persisted actions by sequence, shows visible numbering and action categories, highlights the latest step, attaches parameter suggestions without exposing their literal value, preserves ambiguity/protected-value guidance, announces new readable steps accessibly and keeps the timeline independently scrollable. Focused acceptance coverage was added but not executed under the user-owned verification rule.
 - Repository work now follows `jevprotocol.md`: deterministic tools handle exact work, Jev/TypeSafe handles suitable typed high-volume semantic judgments, low confidence escalates to frontier reasoning, and completion reports track measured or explicitly estimated savings so the approach can be evaluated rather than assumed.
 - `docs/Veyra_PRD.md` is the product source of truth and now contains `DEC-21` through `DEC-23`, locking the approved visual system, representative flow, application mark and in-product lockup.
 - Root `design_specification.md` is now the design source of truth. It formalizes the approved `design_inspirations/New UI Mockups/Veyra Prototype.dc.html` shell, tokens, components, interactions, accessibility contract, overlays and seven screens.
@@ -36,7 +38,17 @@
 
 ## In flight
 
-- No implementation task is currently in progress.
+- Repository documentation is now organized around `docs/idea.md` as the
+  stakeholder product narrative. Historical client context, stale handoffs,
+  standalone design captures, raw research intermediates and the Manus queue
+  receipt are retained under `archive/`; active source, current competitive
+  synthesis, Reticle state and reproducible E02 artifacts remain in place.
+
+- Product-positioning review: REVIEW01's first-pass assessment is prepared. REVIEW02 research workflow `5f625149c1b0` completed all 16 competitor profiles, a buyer-needs study and synthesis without coverage failures. The complete evaluation (`outputs/veyra-product-review/02_competitive_research.md`) cites 64 sources; the reusable comparison (`03_competitor_comparison.csv` in the same folder) has 16 rows and 15 fields. Both files were checked for completeness, CSV structure and citation definitions. Research strengthens the warning that AI/no-code/local execution and ABM-adjacent governance/context are contested; near-term opportunity hypotheses are tester-owned outcome verification, trustworthy handoff and measurable semantic reuse. Pricing is a dated public snapshot, not normalized total cost; no hands-on competitor benchmark or demand validation was performed. Anand's review and REVIEW03 brainstorm remain pending. No product decisions, source-baseline rewrite or application changes were made. Jev was considered but not used for open-ended research; Reticle was skipped because no application behavior changed. No Manus credit estimate or savings claim is made.
+
+- DEC-25 approves twelve Jev judgment capabilities, documented in PRD §38, V0/V1 product features and tasks JEV01–JEV12 plus JEV.EVAL. They are backlog requirements; no production Jev integration or measured savings exists yet. V0/V1/later release boundaries remain explicit.
+
+- E06.T04 remains Pending until Anand confirms the manual test passes; Codex did not execute tests, typecheck, builds, Electron or Reticle.
 
 ## Open decisions
 
@@ -48,4 +60,4 @@
 
 ## Most useful next action
 
-Start E06.T02: capture meaningful navigation, click, type, select and key actions from the controlled browser.
+For the current product-review request, discuss the researched opportunity hypotheses and choose one primary buyer/job for REVIEW03 before finalizing positioning or changing the PRD. The implementation next action remains: manually verify E06.T04, then mark it Done and start E06.T05 only after confirmation.

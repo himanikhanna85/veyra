@@ -10,7 +10,9 @@ confidence-escalation and usage-measurement requirements.
 
 This file is deliberately short. If it grows past ~150 lines, compact it.
 
-IMPORTANT : Some of these documents like idea.md might not be idea.md exactly but something like idea_****.md or so and they all might be in a docs folder instead of root. We will keep them in docs folder only and update everything there. However tasks.md and bugs.md needs to stay at root level !
+Product documents live in `docs/`; operational trackers remain at repository
+root. Every repository must contain `docs/idea.md`. `tasks.md` and the current
+numbered bug log stay at root.
 ## 0. Follow these rules — always
 
 Not "when convenient", not "unless the task is small". If a rule is wrong,
@@ -18,15 +20,17 @@ say so and ask — do not quietly skip it. Silently ignoring a rule is worse
 than arguing with it.
 
 Before ending a turn, check: did anything I just did need a `tasks.md` entry,
-a `bugs2.md` entry, a `PRD.md` update, or a ship report? If yes, do it now.
+a current bug-log entry, a `docs/Veyra_PRD.md` update, or a ship report? If yes,
+do it now.
 
 ## 1. Canonical files
 
 | File | Holds |
 |---|---|
+| `docs/idea.md` | Stakeholder-level product idea, promise, audience and strategic direction |
 | `status_quo.md` | **Where the project is right now** — the anchor. See §7. |
-| `PRD.md` | Product requirements + the *reasoning* behind decisions |
-| `tasks.md` | Every task, pointed and short. Detail lives in `PRD.md` |
+| `docs/Veyra_PRD.md` | Product requirements + the *reasoning* behind decisions |
+| `tasks.md` | Every task, pointed and short. Detail lives in `docs/Veyra_PRD.md` |
 | `design_specification.md` | Design source of truth |
 | `bugs3.md` | Bug log (current). `bugs.md` and `bugs2.md` are frozen — never add to them |
 | `commands.md` | Every operational command, in full runnable form |
@@ -42,8 +46,8 @@ Everything else lives in `docs/`.
 ## 2. Decisions land in PRD + tasks the same turn
 
 A decision finalised in chat, a grilling session, or a brainstorm gets written
-into **both** `PRD.md` and `tasks.md` before the turn ends. A decision not in
-those files did not happen.
+into **both** `docs/Veyra_PRD.md` and `tasks.md` before the turn ends. A decision
+not in those files did not happen.
 
 Record the **reasoning**, not just the conclusion. The next agent needs to know
 why, or it will re-litigate.
@@ -55,9 +59,9 @@ too. Update its status the moment it is done, not at end of session.
 
 ## 4. tasks.md stays compact
 
-One line per task. Details, trade-offs and rationale go in `PRD.md`; the task
-line points there. Completed work moves to a `## Done` section — not deleted,
-not left mixed in with pending work.
+One line per task. Details, trade-offs and rationale go in
+`docs/Veyra_PRD.md`; the task line points there. Completed work moves to a
+`## Done` section — not deleted, not left mixed in with pending work.
 
 ## 5. commands.md documents every command
 
@@ -114,13 +118,17 @@ When anything ships, state: **what changed**, **how to test it manually** (exact
 steps), and **what to expect** — happy path plus known limits. Never just
 "done".
 
-## 10. Verify before claiming
+## 10. User-owned verification
 
-A fix is not fixed until it has been **run**. Not read, not reasoned about —
-executed, with the output shown. If you did not verify something, say so.
+Codex must not run tests, typechecks, builds, development servers, Electron,
+Reticle or any `npm` command unless Anand explicitly approves that command in
+the current request. Implement the code, provide an exact manual testing
+procedure and leave execution to Anand. Never describe unexecuted work as
+verified: report it as **implemented, awaiting user verification**.
 
-*(Learned the expensive way: enrolment was reported fixed twice by two different
-agents while still returning HTTP 500 on every call.)*
+Move a task to Done only after Anand confirms the manual test passed. Until
+then, keep it Pending and record the unverified implementation in
+`status_quo.md`.
 
 ---
 
@@ -128,14 +136,14 @@ agents while still returning HTTP 500 on every call.)*
 
 When the user invokes `/lightmode`, or when context is over ~60% used:
 
-- Read `status_quo.md` instead of re-reading `PRD.md` and `tasks.md` in full
+- Read `status_quo.md` instead of re-reading `docs/Veyra_PRD.md` and `tasks.md` in full
 - Use `rtk` wrappers and targeted `grep`/`sed -n` ranges — never dump whole files
 - Summarise tool output rather than pasting it
 - Skip proactive exploration; ask before broad searches
 - Prefer one precise command over three exploratory ones
 - Keep replies short — findings and decisions, not narration
 - Still non-negotiable: §2 (PRD+tasks), §3 (tasks first), §9 (ship report),
-  §10 (verify). Lightmode saves tokens, never rigour.
+  §10 (user-owned verification). Lightmode saves tokens, never rigour.
 
 Say when you enter and leave it.
 
